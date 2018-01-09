@@ -168,7 +168,7 @@ export default class HomeView extends Component<{}> {
   * @event motionchange
   */
   onMotionChange(event) {
-    console.log('[event] motionchange: ', event.isMovign, event.location);
+    console.log('[event] motionchange: ', event.isMoving, event.location);
     let location = event.location;
 
     let state = {
@@ -540,6 +540,17 @@ export default class HomeView extends Component<{}> {
   }
 
   render() {
+    /* Additional actions for side menu:
+    <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('resetOdometer')}>
+      {!this.state.isResettingOdometer ? (<Icon name="ios-speedometer" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
+    </ActionButton.Item>
+    <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('emailLog')}>
+      {!this.state.isEmailingLog ? (<Icon name="ios-mail" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
+    </ActionButton.Item>
+    <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('sync')}>
+      {!this.state.isSyncing ? (<Icon name="ios-cloud-upload" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
+    </ActionButton.Item>
+    */
     return (
       <Container style={styles.container}>
         <Header style={styles.header}>
@@ -549,7 +560,7 @@ export default class HomeView extends Component<{}> {
             </Button>
           </Left>
           <Body>
-            <Title style={styles.title}>BG Geo</Title>
+            <Title style={styles.title}>My Round</Title>
           </Body>
           <Right>
             <Switch onValueChange={() => this.onToggleEnabled()} value={this.state.enabled} />
@@ -620,15 +631,6 @@ export default class HomeView extends Component<{}> {
           offsetY={ACTION_BUTTON_OFFSET_Y}>
           <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('settings')}>
             <Icon name="ios-cog" style={styles.actionButtonIcon} />
-          </ActionButton.Item>
-          <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('resetOdometer')}>
-            {!this.state.isResettingOdometer ? (<Icon name="ios-speedometer" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
-          </ActionButton.Item>
-          <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('emailLog')}>
-            {!this.state.isEmailingLog ? (<Icon name="ios-mail" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
-          </ActionButton.Item>
-          <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('sync')}>
-            {!this.state.isSyncing ? (<Icon name="ios-cloud-upload" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
           </ActionButton.Item>
           <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('destroyLocations')}>
             {!this.state.isDestroyingLocations ? (<Icon name="ios-trash" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
