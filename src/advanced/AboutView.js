@@ -5,7 +5,7 @@ import {
   WebView
 } from 'react-native';
 
-import { 
+import {
   Container,
   Button, Icon,
   Text,
@@ -28,13 +28,13 @@ export default class AboutView extends Component<{}> {
             <Title style={styles.title}>About</Title>
           </Body>
           <Right>
-            
+
           </Right>
         </Header>
-        
+
         <Container>
           <WebView
-            source={{uri: 'http://www.transistorsoft.com/shop/products/react-native-background-geolocation'}}
+            source={{uri: 'http://www.golfcoursearchitecture.net/Portals/0/EasyDNNnews/12463/Generic-Golf-950x534.jpg'}}
           />
         </Container>
       </Container>

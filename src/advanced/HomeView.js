@@ -177,6 +177,7 @@ export default class HomeView extends Component<{}> {
 
     if (event.isMoving) {
       if (this.lastMotionChangeLocation) {
+        console.log("Adding a stop stopZones")
         state.stopZones = [...this.state.stopZones, {
           coordinate: {
             latitude: this.lastMotionChangeLocation.coords.latitude,
@@ -202,6 +203,7 @@ export default class HomeView extends Component<{}> {
     this.setState(state);
     this.lastMotionChangeLocation = location;
   }
+
   /**
   * @event activitychange
   */
@@ -211,18 +213,21 @@ export default class HomeView extends Component<{}> {
       motionActivity: event
     });
   }
+
   /**
   * @event heartbeat
   */
   onHeartbeat(params) {
     console.log("- heartbeat: ", params.location);
   }
+
   /**
   * @event providerchange
   */
   onProviderChange(event) {
     console.log('[event] providerchange', event);
   }
+
   /**
   * @event http
   */
@@ -230,6 +235,7 @@ export default class HomeView extends Component<{}> {
     console.log('- http ' + response.status);
     console.log(response.responseText);
   }
+
   /**
   * @event geofenceschange
   */
@@ -254,6 +260,7 @@ export default class HomeView extends Component<{}> {
       geofences: geofences
     });
   }
+
   /**
   * @event geofence
   */
@@ -302,6 +309,7 @@ export default class HomeView extends Component<{}> {
       geofencesHitEvents: [...this.state.geofencesHitEvents, event]
     });
   }
+
   /**
   * @event schedule
   */
@@ -311,6 +319,7 @@ export default class HomeView extends Component<{}> {
       enabled: state.enabled
     });
   }
+
   /**
   * @event powersavechange
   */
@@ -544,9 +553,6 @@ export default class HomeView extends Component<{}> {
     <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('resetOdometer')}>
       {!this.state.isResettingOdometer ? (<Icon name="ios-speedometer" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
     </ActionButton.Item>
-    <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('emailLog')}>
-      {!this.state.isEmailingLog ? (<Icon name="ios-mail" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
-    </ActionButton.Item>
     <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('sync')}>
       {!this.state.isSyncing ? (<Icon name="ios-cloud-upload" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
     </ActionButton.Item>
@@ -580,6 +586,7 @@ export default class HomeView extends Component<{}> {
           showsScale={false}
           showsTraffic={false}
           toolbarEnabled={false}>
+          {/* Remove ugly circle
           <MapView.Circle
             key={this.state.stationaryLocation.timestamp}
             radius={this.state.stationaryRadius}
@@ -588,6 +595,7 @@ export default class HomeView extends Component<{}> {
             strokeWidth={1}
             center={{latitude: this.state.stationaryLocation.latitude, longitude: this.state.stationaryLocation.longitude}}
           />
+          */}
           <MapView.Polyline
             key="polyline"
             coordinates={(!this.state.settings.hidePolyline) ? this.state.coordinates : []}
@@ -631,6 +639,9 @@ export default class HomeView extends Component<{}> {
           offsetY={ACTION_BUTTON_OFFSET_Y}>
           <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('settings')}>
             <Icon name="ios-cog" style={styles.actionButtonIcon} />
+          </ActionButton.Item>
+          <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('emailLog')}>
+            {!this.state.isEmailingLog ? (<Icon name="ios-mail" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
           </ActionButton.Item>
           <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('destroyLocations')}>
             {!this.state.isDestroyingLocations ? (<Icon name="ios-trash" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
@@ -682,6 +693,7 @@ export default class HomeView extends Component<{}> {
     }
   }
 
+  // Show player's locations
   renderMarkers() {
     if (this.state.settings.hideMarkers) { return; }
     let rs = [];

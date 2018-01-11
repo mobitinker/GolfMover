@@ -1,16 +1,16 @@
 import React, { Component } from 'react';
-import {  
+import {
   View,
   StyleSheet,
   Platform,
 } from 'react-native';
 
-import { 
+import {
   Container,
   Button, Icon,
   Text,
   Header, Title,
-  Content, 
+  Content,
   Left, Body, Right,
   Form, Label, Input, Picker, Switch,
   Item as FormItem,
@@ -45,7 +45,7 @@ export default class SettingsView extends Component<{}> {
       isDestroyingLog: false,
       isLoadingGeofences: false,
       geofence: {
-        radius: '200',
+        radius: '20',  // mkm was 200
         notifyOnEntry: true,
         notifyOnExit: false,
         notifyOnDwell: false,
@@ -68,7 +68,7 @@ export default class SettingsView extends Component<{}> {
     this.settingsService.getApplicationState((state) => {
       this.setState(state);
     });
-  }  
+  }
 
   /**
   * Navigate back to home-screen app-switcher
@@ -85,7 +85,7 @@ export default class SettingsView extends Component<{}> {
     this.props.navigation.navigate('About');
   }
 
-  onChangeTrackingMode(value) {    
+  onChangeTrackingMode(value) {
     if (this.state.trackingMode === value) { return; }
     this.setState({trackingMode: value});
     if (value === 'location') {
@@ -123,10 +123,10 @@ export default class SettingsView extends Component<{}> {
 
       BackgroundGeolocation.addGeofences(geofences, () => {
         this.settingsService.playSound('ADD_GEOFENCE');
-        this.settingsService.toast('Loaded City Drive geofences');
+        this.settingsService.toast('Loaded test geofences');
         this.setState({isLoadingGeofences: false});
       }, () => {
-        this.settingsService.toast('Loaded City Drive geofences');
+        this.settingsService.toast('Loaded test geofences');
         this.setState({isLoadingGeofences: false});
       });
     });
@@ -198,9 +198,11 @@ export default class SettingsView extends Component<{}> {
           <Body>
             <Title style={styles.title}>Settings</Title>
           </Body>
+          {/*
           <Right>
             <Button dark small bordered onPress={this.onClickAbout.bind(this)}><Text>About</Text></Button>
           </Right>
+          */}
         </Header>
 
         <Content style={styles.content}>
@@ -214,10 +216,14 @@ export default class SettingsView extends Component<{}> {
               <Text>ACTIVITY RECOGNITION</Text>
             </FormItem>
             {this.renderPluginSettings('activity recognition')}
+            {
+            /* mkm
             <FormItem style={styles.headerItem}>
               <Text>HTTP &amp; PERSISTENCE</Text>
             </FormItem>
             {this.renderPluginSettings('http')}
+            */
+            }
             <FormItem style={styles.headerItem}>
               <Text>APPLICATION</Text>
             </FormItem>
@@ -237,7 +243,7 @@ export default class SettingsView extends Component<{}> {
             </Content>
 
             <FormItem style={styles.headerItem}>
-              <Text>GEOFENCE TESTING (Freeway Drive)</Text>
+              <Text>GEOFENCE TESTING (Test Course)</Text>
             </FormItem>
 
             <FormItem style={styles.formItem}>
@@ -245,18 +251,18 @@ export default class SettingsView extends Component<{}> {
                 <Button full danger onPress={this.onClickClearGeofences.bind(this)}>
                   <Text>Clear</Text>
                 </Button>
-              </Left>              
+              </Left>
               <Right style={{marginLeft: 3}}>
-                <Button full onPress={this.onClickLoadGeofences.bind(this)} isLoading={this.state.isLoadingGeofences}>                  
+                <Button full onPress={this.onClickLoadGeofences.bind(this)} isLoading={this.state.isLoadingGeofences}>
                   {!this.state.isLoadingGeofences ? (<Text>Load</Text>) : (<Spinner color="white" size="small" />)}
                 </Button>
               </Right>
             </FormItem>
-            
+
             {this.getGeofenceTestSettings()}
           </Form>
         </Content>
-                  
+
       </Container>
     );
   }
@@ -269,7 +275,7 @@ export default class SettingsView extends Component<{}> {
 
   getGeofenceTestSettings() {
     return this.settingsService.getApplicationSettings('geofence').map((setting) => {
-      console.log('- setting: ', setting);
+      //console.log('- setting: ', setting);
 
       return this.buildField(setting, this.onChangeGeofence.bind(this));
     });
@@ -277,6 +283,9 @@ export default class SettingsView extends Component<{}> {
 
   buildField(setting, onValueChange) {
     let field = null;
+    if (!setting.show) {
+      return;
+    }
     switch(setting.inputType) {
       case 'text':
         field = (
@@ -446,7 +455,7 @@ export default class SettingsView extends Component<{}> {
 const styles = StyleSheet.create({
   container: {
     //backgroundColor: '#fefefe'
-  }, 
+  },
   header: {
     backgroundColor: '#fedd1e'
   },
