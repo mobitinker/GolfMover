@@ -137,9 +137,16 @@ export default class HomeView extends Component<{}> {
     BackgroundGeolocation.on("schedule", this.onSchedule.bind(this));
 
     // Step 2:  #configure:
-    // If you want to override any config options provided by the Settings screen, this is the place to do it, eg:
-    // config.stopTimeout = 5;
-    //
+    // Values from setup are not loaded at startup. Set key parameters here
+    config.trackingMode = 'geofence'
+    config.desiredAccuracy = 10
+    config.activityRecognitionInterval = 1000
+    config.stopTimeout = 0
+    config.stopOnTerminate = true
+    config.stopOnStationary = false
+    config.notifyOnEntry = true
+    config.notifyOnExit = true
+
     BackgroundGeolocation.configure(config, (state) => {
       this.setState({
         enabled: state.enabled,
@@ -168,7 +175,8 @@ export default class HomeView extends Component<{}> {
   * @event motionchange
   */
   onMotionChange(event) {
-    console.log('[event] motionchange: ', event.isMoving, event.location);
+    //console.log('[event] motionchange: ', event.isMoving, event.location);
+    console.log('[event] motionchange: ', event);
     let location = event.location;
 
     let state = {
@@ -177,7 +185,7 @@ export default class HomeView extends Component<{}> {
 
     if (event.isMoving) {
       if (this.lastMotionChangeLocation) {
-        console.log("Adding a stop stopZones")
+        console.log("***Adding a stop stopZones")
         state.stopZones = [...this.state.stopZones, {
           coordinate: {
             latitude: this.lastMotionChangeLocation.coords.latitude,
@@ -219,7 +227,27 @@ export default class HomeView extends Component<{}> {
   */
   onHeartbeat(params) {
     console.log("- heartbeat: ", params.location);
-  }
+    //TODO Experiment with the following
+    /*
+
+    BackgroundGeolocation.getCurrentPosition(function(location) {
+      // This location is already persisted to plugin’s SQLite db.
+      // If you’ve configured #autoSync: true, the HTTP POST has already started.
+      console.log(“- Current position received: “, location);
+    }, function(errorCode) {
+      alert('An location error occurred: ' + errorCode);
+    }, {
+      timeout: 30,      // 30 second timeout to fetch location
+      maximumAge: 5000, // Accept the last-known-location if not older than 5000 ms.
+      desiredAccuracy: 10,  // Try to fetch a location with an accuracy of `10` meters.
+      samples: 3,   // How many location samples to attempt.
+      extras: {         // [Optional] Attach your own custom `metaData` to this location.  This metaData will be persisted to SQLite and POSTed to your server
+            // Could set the source of location to "sourceEvent":"heartbeat"
+        foo: "bar"
+      }
+    });
+    */
+  }  // onHeartbeat
 
   /**
   * @event providerchange
@@ -487,7 +515,7 @@ export default class HomeView extends Component<{}> {
         this.setState({isSyncing: true});
         BackgroundGeolocation.sync((rs) => {
           this.settingsService.toast('Sync success (' + count + ' records)');
-          this.settingsService.playSound('MESSAGE_SENT');
+          //this.settingsService.playSound('MESSAGE_SENT');
           this.setState({isSyncing: false});
         }, (error) => {
           this.settingsService.toast('Sync error: ' + error);
@@ -576,6 +604,7 @@ export default class HomeView extends Component<{}> {
         <MapView
           ref="map"
           style={styles.map}
+          mapType="hybrid"
           showsUserLocation={this.state.showsUserLocation}
           followsUserLocation={false}
           onLongPress={this.onLongPress.bind(this)}
@@ -586,16 +615,6 @@ export default class HomeView extends Component<{}> {
           showsScale={false}
           showsTraffic={false}
           toolbarEnabled={false}>
-          {/* Remove ugly circle
-          <MapView.Circle
-            key={this.state.stationaryLocation.timestamp}
-            radius={this.state.stationaryRadius}
-            fillColor={STATIONARY_REGION_FILL_COLOR}
-            strokeColor={STATIONARY_REGION_STROKE_COLOR}
-            strokeWidth={1}
-            center={{latitude: this.state.stationaryLocation.latitude, longitude: this.state.stationaryLocation.longitude}}
-          />
-          */}
           <MapView.Polyline
             key="polyline"
             coordinates={(!this.state.settings.hidePolyline) ? this.state.coordinates : []}
@@ -608,7 +627,7 @@ export default class HomeView extends Component<{}> {
           {this.renderStopZoneMarkers()}
           {this.renderActiveGeofences()}
           {this.renderGeofencesHit()}
-          {this.renderGeofencesHitEvents()}
+          {/* this.renderGeofencesHitEvents() causes key dup error */}
         </MapView>
 
         <View style={styles.mapMenu}>
@@ -716,13 +735,14 @@ export default class HomeView extends Component<{}> {
       <MapView.Marker
         key={stopZone.key}
         coordinate={stopZone.coordinate}
-        anchor={{x:0, y:0}}>
+        anchor={{x:0, y:0.1}}>
         <View style={[styles.stopZoneMarker]}></View>
       </MapView.Marker>
     ));
   }
 
   renderActiveGeofences() {
+    console.log("# active geofences: " + this.state.geofences.length)
     return this.state.geofences.map((geofence) => (
       <MapView.Circle
         key={geofence.identifier}
@@ -965,13 +985,11 @@ var styles = StyleSheet.create({
   },
   stopZoneMarker: {
     borderWidth:1,
-    borderColor: 'red',
+    borderColor: COLORS.red,
     backgroundColor: COLORS.red,
-    opacity: 0.2,
-    borderRadius: 15,
-    zIndex: 0,
-    width: 30,
-    height: 30
+    borderRadius: 5,
+    width: 10,
+    height: 10
   },
   geofenceHitMarker: {
     borderWidth:1,
