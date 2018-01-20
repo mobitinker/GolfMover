@@ -1,4 +1,4 @@
-package com.transistorsoft.backgroundgeolocation.react;
+package com.murphysw.golfmover;
 
 import com.facebook.react.ReactActivity;
 

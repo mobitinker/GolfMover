@@ -119,14 +119,14 @@ export default class SettingsView extends Component<{}> {
     this.setState({isLoadingGeofences: true});
 
     this.settingsService.getApplicationState((state) => {
-      let geofences = this.settingsService.getTestGeofences('city_drive', state);
+      let geofences = this.settingsService.getTestGeofences();
 
       BackgroundGeolocation.addGeofences(geofences, () => {
         this.settingsService.playSound('ADD_GEOFENCE');
         this.settingsService.toast('Loaded test geofences');
         this.setState({isLoadingGeofences: false});
       }, () => {
-        this.settingsService.toast('Loaded test geofences');
+        this.settingsService.toast('Failed to load test geofences');
         this.setState({isLoadingGeofences: false});
       });
     });
@@ -228,6 +228,8 @@ export default class SettingsView extends Component<{}> {
               <Text>APPLICATION</Text>
             </FormItem>
             {this.renderPluginSettings('application')}
+
+            { /* mkm Hide debug stuff
             <FormItem style={styles.headerItem}>
               <Text>DEBUG</Text>
             </FormItem>
@@ -235,6 +237,7 @@ export default class SettingsView extends Component<{}> {
               <Input placeholder="your@email.com" value={this.state.email} onChangeText={this.onChangeEmail.bind(this)} />
             </FormItem>
             {this.renderPluginSettings('debug')}
+            */ }
 
             <Content style={styles.formItem}>
               <Button full danger onPress={this.onClickDestroyLog.bind(this)} isLoading={this.state.isDestroyingLog}>
@@ -242,6 +245,7 @@ export default class SettingsView extends Component<{}> {
               </Button>
             </Content>
 
+            {/* Hide geofence stuff. Clear and load geofences at start up
             <FormItem style={styles.headerItem}>
               <Text>GEOFENCE TESTING (Test Course)</Text>
             </FormItem>
@@ -260,6 +264,7 @@ export default class SettingsView extends Component<{}> {
             </FormItem>
 
             {this.getGeofenceTestSettings()}
+            */ }
           </Form>
         </Content>
 

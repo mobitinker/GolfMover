@@ -5,6 +5,7 @@ import {
   StyleSheet,
   View
 } from 'react-native';
+import firebase from 'react-native-firebase';
 
 // For posting to tracker.transistorsoft.com
 import DeviceInfo from 'react-native-device-info';
@@ -72,6 +73,7 @@ export default class HomeView extends Component<{}> {
     this.state = {
       enabled: false,
       isMoving: false,
+      trackingMode: "geofence", //mkm
       motionActivity: {activity: 'unknown', confidence: 100},
       odometer: 0,
       username: props.navigation.state.params.username,
@@ -100,11 +102,19 @@ export default class HomeView extends Component<{}> {
       // Application settings
       settings: {},
       // BackgroundGeolocation state
-      bgGeo: {}
+      bgGeo: {},
+      db: null
     };
 
     this.settingsService = SettingsService.getInstance();
     this.settingsService.setUsername(this.state.username);
+
+    this.fbConfig = {
+      apiKey: "AIzaSyCvXMCj_ghnCTCuhXv4ivKsppdVFtx24aQ",
+      authDomain: "golfmover.firebaseapp.com",
+      databaseURL: "https://golfmover.firebaseio.com",  //??
+      storageBucket: "bucket.appspot.com"
+    }
   }
 
   componentDidMount() {
@@ -120,6 +130,12 @@ export default class HomeView extends Component<{}> {
       this.setState({
         settings: state
       });
+    });
+
+    // Get database
+    let newDB = firebase.database()
+    this.setState( {
+      db:newDB
     });
   }
 
@@ -138,7 +154,6 @@ export default class HomeView extends Component<{}> {
 
     // Step 2:  #configure:
     // Values from setup are not loaded at startup. Set key parameters here
-    config.trackingMode = 'geofence'
     config.desiredAccuracy = 10
     config.activityRecognitionInterval = 1000
     config.stopTimeout = 0
@@ -146,6 +161,7 @@ export default class HomeView extends Component<{}> {
     config.stopOnStationary = false
     config.notifyOnEntry = true
     config.notifyOnExit = true
+    config.geofenceProximityRadius = 10000
 
     BackgroundGeolocation.configure(config, (state) => {
       this.setState({
@@ -156,6 +172,18 @@ export default class HomeView extends Component<{}> {
         bgGeo: state
       });
     });
+
+    // Clear, then add default geofences
+    BackgroundGeolocation.removeGeofences();
+
+    let geofences = this.settingsService.getTestGeofences();
+
+    BackgroundGeolocation.addGeofences(geofences, () => {
+      this.settingsService.toast('Loaded geofences');
+    }, () => {
+      this.settingsService.toast('Failed to load geofences');
+    });
+
   }
   /**
   * @event location
@@ -185,7 +213,6 @@ export default class HomeView extends Component<{}> {
 
     if (event.isMoving) {
       if (this.lastMotionChangeLocation) {
-        console.log("***Adding a stop stopZones")
         state.stopZones = [...this.state.stopZones, {
           coordinate: {
             latitude: this.lastMotionChangeLocation.coords.latitude,
@@ -217,6 +244,18 @@ export default class HomeView extends Component<{}> {
   */
   onActivityChange(event) {
     console.log('[event] activitychange: ', event);
+    let d = new Date()
+    let lastChangeEvent = this.state.motionActivity
+    let isNew = !lastChangeEvent || lastChangeEvent.activity != event.activity
+    let newRef = this.state.db.ref("activities").push(
+      {
+        isNew : isNew,
+        started : d.toString(),
+        activity : event.activity,
+        confidence : event.confidence
+      }
+    )
+
     this.setState({
       motionActivity: event
     });
@@ -307,7 +346,6 @@ export default class HomeView extends Component<{}> {
     let hit = this.state.geofencesHit.find((hit) => {
       return hit.identifier === geofence.identifier;
     });
-
     if (!hit) {
       hit = {
         identifier: geofence.identifier,
@@ -318,6 +356,7 @@ export default class HomeView extends Component<{}> {
         },
         events: []
       };
+      // TODO may need to prevent duplicates from being added
       this.setState({
         geofencesHit: [...this.state.geofencesHit, hit]
       });
@@ -371,15 +410,27 @@ export default class HomeView extends Component<{}> {
     });
 
     if (enabled) {
-      BackgroundGeolocation.start((state) => {
-        // We tell react-native-maps to access location only AFTER
-        // the plugin has requested location, otherwise we have a permissions tug-of-war,
-        // since react-native-maps wants WhenInUse permission
-        this.setState({
-          showsUserLocation: enabled,
-          followsUserLocation: enabled
+      if (this.state.trackingMode === "geofence") {
+        BackgroundGeolocation.startGeofences((state) => {
+          this.setState({
+            showsUserLocation: enabled,
+            followsUserLocation: enabled
+          });
         });
-      });
+        console.log('Starting geofence tracking mode');
+
+      } else {
+        BackgroundGeolocation.start((state) => {
+          // We tell react-native-maps to access location only AFTER
+          // the plugin has requested location, otherwise we have a permissions tug-of-war,
+          // since react-native-maps wants WhenInUse permission
+          this.setState({
+            showsUserLocation: enabled,
+            followsUserLocation: enabled
+          });
+        });
+        console.log('Starting location tracking mode');
+      }
     } else {
       BackgroundGeolocation.stop();
       // Clear markers, polyline, geofences, stationary-region
@@ -627,7 +678,7 @@ export default class HomeView extends Component<{}> {
           {this.renderStopZoneMarkers()}
           {this.renderActiveGeofences()}
           {this.renderGeofencesHit()}
-          {/* this.renderGeofencesHitEvents() causes key dup error */}
+          {this.renderGeofencesHitEvents()}
         </MapView>
 
         <View style={styles.mapMenu}>
@@ -670,13 +721,14 @@ export default class HomeView extends Component<{}> {
         <Footer style={styles.footer}>
           <Left style={{flex:0.3}}>
             <Button small info onPress={this.onClickGetCurrentPosition.bind(this)}>
-              <Icon active name="md-navigate" style={styles.icon} />
+              <Icon active name="md-locate" style={styles.icon} />
             </Button>
           </Left>
           <Body style={styles.footerBody}>
             <Text style={styles.status}>{this.state.motionActivity.activity}:{this.state.motionActivity.confidence}% &middot; {this.state.odometer}km</Text>
           </Body>
           <Right style={{flex: 0.3}}>
+            {/* Hide pace button
             <Button small
               danger={this.state.isMoving}
               success={!this.state.isMoving}
@@ -684,6 +736,7 @@ export default class HomeView extends Component<{}> {
               onPress={this.onClickChangePace.bind(this)}>
               <Icon active name={(this.state.isMoving) ? 'pause' : 'play'} style={styles.icon}/>
             </Button>
+            */}
           </Right>
         </Footer>
       </Container>
@@ -742,17 +795,25 @@ export default class HomeView extends Component<{}> {
   }
 
   renderActiveGeofences() {
-    console.log("# active geofences: " + this.state.geofences.length)
     return this.state.geofences.map((geofence) => (
-      <MapView.Circle
-        key={geofence.identifier}
-        radius={geofence.radius}
-        center={geofence.center}
-        strokeWidth={1}
-        strokeColor={geofence.strokeColor}
-        fillColor={geofence.fillColor}
-        onPress={this.onPressGeofence}
-      />
+      <View>
+        <MapView.Circle
+          key={geofence.identifier}
+          radius={geofence.radius}
+          center={geofence.center}
+          strokeWidth={1}
+          strokeColor={geofence.strokeColor}
+          fillColor={geofence.fillColor}
+        />
+        <MapView.Marker
+          coordinate={geofence.center}
+          anchor={{x:0.5,y:0.5}}
+          key={geofence.identifier + "-m"}>
+          <View style={styles.flag}>
+            <Text style={styles.flagText}>{geofence.identifier}</Text>
+          </View>
+        </MapView.Marker>
+      </View>
     ));
   }
 
@@ -835,6 +896,12 @@ export default class HomeView extends Component<{}> {
   }
 
   addMarker(location) {
+    var m = this.state.markers.find( (m) => { return m.key === location.uuid; })
+    if (m != undefined) {
+      console.log("Attempt to insert duplicate marker")
+      return
+    }
+
     let marker = {
       key: location.uuid,
       title: location.timestamp,
@@ -1025,5 +1092,17 @@ var styles = StyleSheet.create({
   },
   motionActivityIcon: {
     fontSize: 24
+  },
+  flag: {
+    width: 30,
+    height: 30,
+    borderRadius: 30 / 2,
+    backgroundColor: 'red',
+  },
+  flagText: {
+      color: 'white',
+      textAlign: 'center',
+      fontSize: 10,
+      marginTop: 5,
   }
 });

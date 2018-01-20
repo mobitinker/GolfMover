@@ -98,7 +98,8 @@ android {
     buildToolsVersion "26.0.2"
 
     defaultConfig {
-        applicationId "com.transistorsoft.backgroundgeolocation.react"
+        //applicationId "com.transistorsoft.backgroundgeolocation.react"
+        applicationId "com.murphysw.golfmover"
         minSdkVersion 16
         targetSdkVersion 26
         versionCode 210
@@ -154,6 +155,12 @@ repositories {
 }
 
 dependencies {
+    compile(project(':react-native-firebase')) {
+        transitive = false
+    }
+    compile "com.google.firebase:firebase-core:11.6.0"
+    compile "com.google.firebase:firebase-database:11.6.0"
+
     compile(name: 'tslocationmanager', ext: 'aar')
     compile project(':react-native-prompt-android')
     compile(project(':react-native-device-info')) {
@@ -191,3 +198,5 @@ task copyDownloadableDepsToLibs(type: Copy) {
     from configurations.compile
     into 'libs'
 }
+
+apply plugin: 'com.google.gms.google-services'

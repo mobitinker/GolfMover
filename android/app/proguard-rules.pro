@@ -70,8 +70,8 @@
 -dontwarn okio.**
 
 # BackgroundGeolocation
--keep class com.transistorsoft.** { *; }
--dontwarn com.transistorsoft.**
+-keep class com.murphysw.** { *; }
+-dontwarn com.murphysw.**
 
 -keepattributes *Annotation*
 -keepclassmembers class ** {

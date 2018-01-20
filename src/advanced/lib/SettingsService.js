@@ -59,9 +59,10 @@ const PLUGIN_SETTINGS = {
     {show: true, name: 'distanceFilter', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [0, 10, 20, 50, 100, 500], defaultValue: 20 },
     {show: false, name: 'disableElasticity', group: 'geolocation', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
     {show: false, name: 'elasticityMultiplier', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [0, 1, 2, 3, 5, 10], defaultValue: 1},
-    {show: false, name: 'geofenceProximityRadius', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [1000, 1500, 2000, 5000, 10000, 100000], defaultValue: 1000 },
+    {show: true, name: 'geofenceProximityRadius', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [1000, 1500, 2000, 5000, 10000, 100000], defaultValue: 10000 },
     {show: false, name: 'stopAfterElapsedMinutes', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [-1, 0, 1, 2, 5, 10, 15], defaultValue: 0},
     {show: false, name: 'desiredOdometerAccuracy', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [10, 20, 50, 100, 500], defaultValue: 100},
+
     // Activity Recognition
     {show: true, name: 'activityRecognitionInterval', group: 'activity recognition', dataType: 'integer', inputType: 'select', values: [0, 1000, 5000, 10000, 30000], defaultValue: 1000},
     {show: true, name: 'stopTimeout', group: 'activity recognition', dataType: 'integer', inputType: 'select', values: [0, 1, 5, 10, 15], defaultValue: 0},
@@ -312,6 +313,7 @@ class SettingsService {
         BackgroundGeolocation.getState((state) => {
           // First boot:  Override default options from plugin state.
           // We want to start with debug: true.
+          console.log("Debug getPluginState ", state)
           this.setUUID(DeviceInfo.getUniqueID());  // <-- flag to detect we've booted before
           state.debug = true;
           state.logLevel = BackgroundGeolocation.LOG_LEVEL_VERBOSE;
@@ -486,11 +488,10 @@ class SettingsService {
 
   /**
   * Returns an array of test-geofences suitable for sending to BackgroundGeolocation#addGeofences
-  * @param {String} route name
   * @param {Function} callback
   * @return {Array}
   */
-  getTestGeofences(route, config) {
+  getTestGeofences() {
     var data = this.getCourseData();
     var geofences = [];
 
@@ -534,44 +535,37 @@ class SettingsService {
   }
 
   /**
-  * Returns an array of locations for iOS Simulator City Drive Route
+  * Returns an array of greens. Tees to come later when
   * @return {Array}
   */
   getCourseData() {
 
-    let data =
-    /*
-    // Development
+    let greens =
     [
-      {'identifier':'1G','lat':'45.587004','lng':'-122.754586', 'radius':'20'},
-      {'identifier':'2G','lat':'45.586726','lng':'-122.753674', 'radius':'20'},
-      {'identifier':'3G','lat':'45.586426','lng':'-122.752730', 'radius':'20'}
-    ];
-
-    */
-    // Orchard Hills Golf and Country Club
-    [
-      {'identifier':'G1','lat':'45.579909','lng':'-122.331377','radius':'30'},
-      {'identifier':'G2','lat':'45.581636','lng':'-122.330188','radius':'60'},
+      // In front of Murphy's
+      {'identifier':'M1','lat':'45.587004','lng':'-122.754586', 'radius':'20'},
+      {'identifier':'M2','lat':'45.586726','lng':'-122.753674', 'radius':'20'},
+      {'identifier':'M3','lat':'45.586426','lng':'-122.752730', 'radius':'20'},
+      // OHGCC greens
+      {'identifier':'G1','lat':'45.579909','lng':'-122.331377','radius':'22'},
+      {'identifier':'G2','lat':'45.581636','lng':'-122.330188','radius':'23'},
       {'identifier':'G3','lat':'45.582032','lng':'-122.327205','radius':'20'},
-      {'identifier':'G4','lat':'45.580374','lng':'-122.330795','radius':'20'},
+      {'identifier':'G4','lat':'45.580374','lng':'-122.330795','radius':'18'},
       {'identifier':'G5','lat':'45.579089','lng':'-122.331899','radius':'10'},
-      {'identifier':'G6','lat':'45.578624','lng':'-122.327512','radius':'30'},
-      {'identifier':'G7','lat':'45.57955','lng':'-122.327393','radius':'40'},
-      {'identifier':'G8','lat':'45.578742','lng':'-122.331802','radius':'35'},
+      {'identifier':'G6','lat':'45.578624','lng':'-122.327512','radius':'25'},
+      {'identifier':'G7','lat':'45.57955','lng':'-122.327393','radius':'25'},
+      {'identifier':'G8','lat':'45.578742','lng':'-122.331802','radius':'22'},
       {'identifier':'G9','lat':'45.580013','lng':'-122.327394','radius':'15'},
-      {'identifier':'G10','lat':'45.582404','lng':'-122.321087','radius':'30'},
+      {'identifier':'G10','lat':'45.582404','lng':'-122.321087','radius':'22'},
       {'identifier':'G11','lat':'45.58188','lng':'-122.326','radius':'20'},
-      {'identifier':'G12','lat':'45.583064','lng':'-122.325373','radius':'30'},
-      {'identifier':'G13','lat':'45.58232','lng':'-122.318582','radius':'35'},
+      {'identifier':'G12','lat':'45.583064','lng':'-122.325373','radius':'22'},
+      {'identifier':'G13','lat':'45.58232','lng':'-122.318582','radius':'22'},
       {'identifier':'G14','lat':'45.58148','lng':'-122.316002','radius':'25'},
-      {'identifier':'G15','lat':'45.578263','lng':'-122.315985','radius':'40'},
-      {'identifier':'G16','lat':'45.581242','lng':'-122.318113','radius':'30'},
-      {'identifier':'G17','lat':'45.581812','lng':'-122.320062','radius':'35'},
-      {'identifier':'G18','lat':'45.581015','lng':'-122.326034','radius':'40'},
-    ]
-    console.log("locs: ", data)
-    return data;
+      {'identifier':'G15','lat':'45.578263','lng':'-122.315985','radius':'25'},
+      {'identifier':'G16','lat':'45.581242','lng':'-122.318113','radius':'25'},
+      {'identifier':'G17','lat':'45.581812','lng':'-122.320062','radius':'25'},
+      {'identifier':'G18','lat':'45.581015','lng':'-122.326034','radius':'25'},    ]
+    return greens;
 
   }
 

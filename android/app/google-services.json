@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "503280474320",
+    "firebase_url": "https://golfmover.firebaseio.com",
+    "project_id": "golfmover",
+    "storage_bucket": "golfmover.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503280474320:android:7c283d86cc6e909c",
+        "android_client_info": {
+          "package_name": "com.murphysw.golfmover"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "503280474320-00ltvomopcnffsb2ulndd5vavr7epr2v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.murphysw.golfmover",
+            "certificate_hash": "3ea7440f59a297db2a76ea2deab66353b3089ae1"
+          }
+        },
+        {
+          "client_id": "503280474320-leokf1frvrrqbq27dglo3fifld06o1cr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSAIHyeBmz906iBSPLx8y7nd8bg1_ZKXM"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "503280474320-leokf1frvrrqbq27dglo3fifld06o1cr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
