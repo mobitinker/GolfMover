@@ -46,7 +46,7 @@ import {COLORS, SOUNDS} from './lib/config';
 import SettingsView from './SettingsView';
 import SettingsService from './lib/SettingsService';
 
-const TRACKER_HOST = 'http://tracker.transistorsoft.com/locations/';
+const TRACKER_HOST = 'https://tracker.transistorsoft.com/locations/';
 const STATIONARY_REGION_FILL_COLOR = "rgba(200,0,0,0.2)"
 const STATIONARY_REGION_STROKE_COLOR = "rgba(200,0,0,0.2)"
 const GEOFENCE_STROKE_COLOR = "rgba(17,183,0,0.5)"
@@ -68,7 +68,10 @@ export default class HomeView extends Component<{}> {
   constructor(props) {
     super(props);
 
+    // TODO move these to state
     this.lastMotionChangeLocation = undefined;
+    this.lastMotionTime = (new Date).getTime()
+    this.lastActivityTime = this.lastMotionTime
 
     this.state = {
       enabled: false,
@@ -133,9 +136,8 @@ export default class HomeView extends Component<{}> {
     });
 
     // Get database
-    let newDB = firebase.database()
     this.setState( {
-      db:newDB
+      db:firebase.database()
     });
   }
 
@@ -154,14 +156,17 @@ export default class HomeView extends Component<{}> {
 
     // Step 2:  #configure:
     // Values from setup are not loaded at startup. Set key parameters here
-    config.desiredAccuracy = 10
+    config.desiredAccuracy = 0                // GPS, wifi and cellular
     config.activityRecognitionInterval = 1000
     config.stopTimeout = 0
     config.stopOnTerminate = true
     config.stopOnStationary = false
     config.notifyOnEntry = true
     config.notifyOnExit = true
-    config.geofenceProximityRadius = 10000
+    config.url = TRACKER_HOST + this.state.username
+    console.log("***************url is " + config.url)
+    // TODO determine how to only get for current course
+    config.geofenceProximityRadius = 10000  // Should get all for current course
 
     BackgroundGeolocation.configure(config, (state) => {
       this.setState({
@@ -173,7 +178,7 @@ export default class HomeView extends Component<{}> {
       });
     });
 
-    // Clear, then add default geofences
+    // Clear, then add course geofences
     BackgroundGeolocation.removeGeofences();
 
     let geofences = this.settingsService.getTestGeofences();
@@ -185,11 +190,30 @@ export default class HomeView extends Component<{}> {
     });
 
   }
+
+  logError(error) {
+    this.state.db.ref("errors").push(
+      {
+        errorTime : (new Date).getTime(),
+        error: error,
+      }
+    )
+
+  }
   /**
   * @event location
   */
   onLocation(location) {
     console.log('[event] location: ', location);
+    // Log event
+    this.state.db.ref("events").push(
+      {
+        eventName: "location",
+        eventTime : (new Date).getTime(),
+        location : location
+      }
+    )
+
 
     if (!location.sample) {
       this.addMarker(location);
@@ -199,12 +223,26 @@ export default class HomeView extends Component<{}> {
     }
     this.setCenter(location);
   }
+
   /**
   * @event motionchange
   */
   onMotionChange(event) {
-    //console.log('[event] motionchange: ', event.isMoving, event.location);
-    console.log('[event] motionchange: ', event);
+    console.log('[event] motionchange: ', event.isMoving, event.location);
+
+    let eventTime = (new Date).getTime()
+    let duration = eventTime - this.lastMotionTime
+
+    // Log event
+    this.state.db.ref("events").push(
+      {
+        eventName: "motionchange",
+        eventTime : eventTime,
+        isMoving : event.isMoving,
+        location : event.location
+      }
+    )
+
     let location = event.location;
 
     let state = {
@@ -221,6 +259,16 @@ export default class HomeView extends Component<{}> {
           key: this.lastMotionChangeLocation.timestamp
         }];
       }
+
+      // Report end of stopped to Firebase
+      this.state.db.ref("motionChanges").push(
+        {
+          eventName: "timeStopped",
+          eventTime : eventTime,
+          duration : duration
+        }
+      )
+
       state.stationaryRadius = 0,
       state.stationaryLocation = {
         timestamp: '',
@@ -234,9 +282,20 @@ export default class HomeView extends Component<{}> {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude
       };
+
+      // Report end of moving to Firebase
+      this.state.db.ref("motionChanges").push(
+        {
+          eventName: "timeMoving",
+          eventTime : eventTime,
+          duration : duration
+        }
+      )
+
     }
     this.setState(state);
     this.lastMotionChangeLocation = location;
+    this.lastMotionTime = eventTime
   }
 
   /**
@@ -244,18 +303,38 @@ export default class HomeView extends Component<{}> {
   */
   onActivityChange(event) {
     console.log('[event] activitychange: ', event);
-    let d = new Date()
+
     let lastChangeEvent = this.state.motionActivity
     let isNew = !lastChangeEvent || lastChangeEvent.activity != event.activity
-    let newRef = this.state.db.ref("activities").push(
-      {
-        isNew : isNew,
-        started : d.toString(),
-        activity : event.activity,
-        confidence : event.confidence
-      }
-    )
+    if (isNew) {
+      this.state.db.ref("events").push(
+        {
+          eventName: "activitychange",
+          eventTime : (new Date).getTime(),
+          activity : event.activity,
+          confidence : event.confidence
+        }
+      )
 
+      // Record in Firebase if we are changing to or from still to compare with motion changes
+      if ((event.activity === "still") || (lastChangeEvent.activity === "still")) {
+        // Going to or from "still" ...
+        let eventTime = (new Date).getTime()
+        let duration = eventTime - this.lastActivityTime
+        this.state.db.ref("activityChanges").push(
+          {
+            eventName: event.activity == "still" ?  "timeMoving" : "timeStopped",
+            eventTime : (new Date).getTime(),
+            activity : event.activity,
+            confidence : event.confidence,
+            duration : duration
+          }
+        )
+
+        this.lastActivityTime = eventTime
+      }
+
+    }
     this.setState({
       motionActivity: event
     });
@@ -293,6 +372,15 @@ export default class HomeView extends Component<{}> {
   */
   onProviderChange(event) {
     console.log('[event] providerchange', event);
+    // Log event
+    this.state.db.ref("events").push(
+      {
+        eventName: "providerchange",
+        eventTime : (new Date).getTime(),
+        location : event.location,
+        event: event
+      }
+    )
   }
 
   /**
@@ -300,13 +388,31 @@ export default class HomeView extends Component<{}> {
   */
   onHttp(response) {
     console.log('- http ' + response.status);
-    console.log(response.responseText);
+    // Log event
+    /*
+    this.state.db.ref("http").push(
+      {
+        eventName: "http",
+        eventTime : (new Date).getTime(),
+        response : response
+      }
+    )
+    */
   }
 
   /**
   * @event geofenceschange
   */
   onGeofencesChange(event) {
+    // Log event
+    this.state.db.ref("events").push(
+      {
+        eventName: "geofenceschange",
+        eventTime : (new Date).getTime(),
+        on: event.on                      //List of active geofences
+      }
+    )
+
     var on  = event.on;
     var off = event.off;
     var geofences  = this.state.geofences;
@@ -332,6 +438,18 @@ export default class HomeView extends Component<{}> {
   * @event geofence
   */
   onGeofence(geofence) {
+    // Log event
+    this.state.db.ref("events").push(
+      {
+        eventName: "geofence",
+        eventTime : (new Date).getTime(),
+        location : geofence.location,
+        identifier : geofence.identifier,
+        action : geofence.action,
+        //extras : event.extras,
+      }
+    )
+
     let location = geofence.location;
     var marker = this.state.geofences.find((m) => {
       return m.identifier === geofence.identifier;
@@ -380,6 +498,7 @@ export default class HomeView extends Component<{}> {
   /**
   * @event schedule
   */
+  // Todo remove
   onSchedule(state) {
     console.log("- schedule", state.enabled, state);
     this.setState({
@@ -390,15 +509,32 @@ export default class HomeView extends Component<{}> {
   /**
   * @event powersavechange
   */
+  // Todo remove
   onPowerSaveChange(isPowerSaveMode) {
     console.log('[event] powersavechange', isPowerSaveMode);
+    // Log event
+    this.state.db.ref("events").push(
+      {
+        eventName: "powersavechange",
+        eventTime : (new Date).getTime(),
+        isPowerSaveMode : isPowerSaveMode
+      }
+    )
   }
 
   /**
   * Toggle button handler to #start / #stop the plugin
   */
   onToggleEnabled(value) {
-    this.settingsService.playSound('BUTTON_CLICK');
+    // Log event
+    let d = new Date()
+    this.state.db.ref("events").push(
+      {
+        eventTime : (new Date).getTime(),
+        eventName : "pluginstatechange",
+        enabled : value
+      }
+    )
 
     let enabled = !this.state.enabled;
 
@@ -410,7 +546,13 @@ export default class HomeView extends Component<{}> {
     });
 
     if (enabled) {
+      // Reset timers
+      this.lastMotionChangeLocation = undefined;
+      this.lastMotionTime = (new Date).getTime()
+      this.lastActivityTime = this.lastMotionTime
+
       if (this.state.trackingMode === "geofence") {
+        this.onClickGetCurrentPosition()
         BackgroundGeolocation.startGeofences((state) => {
           this.setState({
             showsUserLocation: enabled,
@@ -432,6 +574,7 @@ export default class HomeView extends Component<{}> {
         console.log('Starting location tracking mode');
       }
     } else {
+      // Disabled
       BackgroundGeolocation.stop();
       // Clear markers, polyline, geofences, stationary-region
       this.clearMarkers();
@@ -460,8 +603,10 @@ export default class HomeView extends Component<{}> {
 
     BackgroundGeolocation.getCurrentPosition((location) => {
       console.log('- getCurrentPosition success: ', location);
+      //this.logError('- getCurrentPosition success: ')
     }, (error) => {
       console.warn('- getCurrentPosition error: ', error);
+      //this.logError('- getCurrentPosition error: ' + error)
     }, {
       persist: true,
       samples: 1
@@ -471,6 +616,7 @@ export default class HomeView extends Component<{}> {
   /**
   * [>] / [||] button executes #changePace
   */
+  // TODO remove
   onClickChangePace() {
     console.log('- onClickChangePace');
     let isMoving = !this.state.isMoving;
@@ -725,7 +871,7 @@ export default class HomeView extends Component<{}> {
             </Button>
           </Left>
           <Body style={styles.footerBody}>
-            <Text style={styles.status}>{this.state.motionActivity.activity}:{this.state.motionActivity.confidence}% &middot; {this.state.odometer}km</Text>
+            <Text style={styles.status}>{this.state.motionActivity.activity}:{this.state.motionActivity.confidence}% conf</Text>
           </Body>
           <Right style={{flex: 0.3}}>
             {/* Hide pace button
@@ -739,7 +885,9 @@ export default class HomeView extends Component<{}> {
             */}
           </Right>
         </Footer>
+
       </Container>
+
     );
   }
 
@@ -796,9 +944,11 @@ export default class HomeView extends Component<{}> {
 
   renderActiveGeofences() {
     return this.state.geofences.map((geofence) => (
-      <View>
+      <View
+        key={geofence.identifier}
+        >
         <MapView.Circle
-          key={geofence.identifier}
+          key={geofence.identifier + "-c"}
           radius={geofence.radius}
           center={geofence.center}
           strokeWidth={1}
@@ -923,6 +1073,7 @@ export default class HomeView extends Component<{}> {
 
   createGeofenceMarker(geofence) {
     return {
+      key: geofence.identifier,
       radius: geofence.radius,
       center: {
         latitude: geofence.latitude,
@@ -1040,7 +1191,7 @@ var styles = StyleSheet.create({
     fontSize: 24
   },
   status: {
-    fontSize: 12
+    fontSize: 16
   },
   markerIcon: {
     borderWidth:1,
