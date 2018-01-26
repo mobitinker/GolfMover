@@ -1,6 +1,6 @@
 {
-	"name": "BGGeolocation",
-	"version": "2.10.1",
+	"name": "GolfMover",
+	"version": "1.0.0",
 	"private": true,
 	"scripts": {
 		"start": "node node_modules/react-native/local-cli/cli.js start",
@@ -15,10 +15,12 @@
 		"react-native-device-info": "^0.12.1",
 		"react-native-easy-grid": "^0.1.15",
 		"react-native-firebase": "^3.2.2",
+		"react-native-google-signin": "^0.12.0",
 		"react-native-maps": "^0.17.1",
 		"react-native-prompt-android": "^0.3.1",
 		"react-native-root-toast": "^2.2.0",
-		"react-navigation": "^1.0.0-beta.21"
+		"react-navigation": "^1.0.0-beta.21",
+		"tcomb-form-native": "^0.6.11"
 	},
 	"devDependencies": {
 		"babel-jest": "21.2.0",

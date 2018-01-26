@@ -46,7 +46,8 @@ import {COLORS, SOUNDS} from './lib/config';
 import SettingsView from './SettingsView';
 import SettingsService from './lib/SettingsService';
 
-const TRACKER_HOST = 'https://tracker.transistorsoft.com/locations/';
+//const TRACKER_HOST = 'https://tracker.transistorsoft.com/locations/';
+const TRACKER_HOST = 'https://golfmover-test.herokuapp.com/locations/';
 const STATIONARY_REGION_FILL_COLOR = "rgba(200,0,0,0.2)"
 const STATIONARY_REGION_STROKE_COLOR = "rgba(200,0,0,0.2)"
 const GEOFENCE_STROKE_COLOR = "rgba(17,183,0,0.5)"
@@ -165,6 +166,7 @@ export default class HomeView extends Component<{}> {
     config.notifyOnExit = true
     config.url = TRACKER_HOST + this.state.username
     console.log("***************url is " + config.url)
+
     // TODO determine how to only get for current course
     config.geofenceProximityRadius = 10000  // Should get all for current course
 
@@ -1096,6 +1098,13 @@ export default class HomeView extends Component<{}> {
     var coordinate = params.nativeEvent.coordinate;
     this.settingsService.playSound('LONG_PRESS_ACTIVATE');
     this.props.navigation.navigate('Geofence', {
+      coordinate: coordinate
+    });
+  }
+
+  onLoginRegister(params) {
+    var coordinate = params.nativeEvent.coordinate;
+    this.props.navigation.navigate('Auth', {
       coordinate: coordinate
     });
   }

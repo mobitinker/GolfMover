@@ -29,5 +29,5 @@ export default AdvancedApp = StackNavigator({
 }, {
   initialRouteName: 'Home',
   headerMode: 'none',
-  mode: 'modal'  
+  mode: 'modal'
 });

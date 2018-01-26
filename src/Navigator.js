@@ -1,8 +1,6 @@
 /**
 * This is the Application's root navigator which automatically routes to the currently
-* selected example app.
-* - HelloWorld
-* - SimpleMap
+* selected view
 * - Advanced
 *
 * The default route is home/Home
@@ -21,15 +19,13 @@ import {
 import { StackNavigator, NavigationActions } from 'react-navigation';
 
 import Home from './home/Home';
-import HelloWorld from './hello-world/HelloWorld';
-import SimpleMap from './simple-map/SimpleMap';
 import AdvancedApp from './advanced/AdvancedApp';
 
-class Root extends Component<{}> {  
+class Root extends Component<{}> {
   componentDidMount() {
     let navigation = this.props.navigation;
 
-    // Fetch current routeName (ie: HelloWorld, SimpleMap, Advanced)
+    // Fetch current routeName (ie: Advanced)
     AsyncStorage.getItem("@transistorsoft:initialRouteName", (err, page) => {
       let params = {username: undefined};
       if (!page) {
@@ -47,7 +43,7 @@ class Root extends Component<{}> {
           actions: [
             NavigationActions.navigate({ routeName: page, params: params})
           ]
-        }));        
+        }));
       });
     });
   }
@@ -63,12 +59,6 @@ export default Navigator = StackNavigator({
   Home: {
     screen: Home
   },
-  HelloWorld: {
-    screen: HelloWorld
-  },
-  SimpleMap: {
-    screen: SimpleMap
-  },
   Advanced: {
     screen: AdvancedApp
   }
@@ -78,8 +68,6 @@ export default Navigator = StackNavigator({
   onTransitionStart: (transition) => {
     // Store the current page route as the initialRouteName so that app boots immediately
     // into the currently selected SampleApp
-    // - HelloWorld
-    // - SimpleMap
     // - Advanced
     let routeName = transition.scene.route.routeName;
     AsyncStorage.setItem("@transistorsoft:initialRouteName", routeName);

@@ -7,7 +7,7 @@ import io.invertase.firebase.RNFirebasePackage;
 
 //import io.invertase.firebase.admob.RNFirebaseAdMobPackage; //Firebase AdMob
 //import io.invertase.firebase.analytics.RNFirebaseAnalyticsPackage; // Firebase Analytics
-//import io.invertase.firebase.auth.RNFirebaseAuthPackage; // Firebase Auth
+import io.invertase.firebase.auth.RNFirebaseAuthPackage; // Firebase Auth
 //import io.invertase.firebase.config.RNFirebaseRemoteConfigPackage; // Firebase Remote Config
 //import io.invertase.firebase.crash.RNFirebaseCrashPackage; // Firebase Crash Reporting
 import io.invertase.firebase.database.RNFirebaseDatabasePackage; // Firebase Realtime Database
@@ -45,7 +45,7 @@ public class MainApplication extends Application implements ReactApplication {
         // add/remove these packages as appropriate
         //new RNFirebaseAdMobPackage(),
         //new RNFirebaseAnalyticsPackage(),
-        //new RNFirebaseAuthPackage(),
+        new RNFirebaseAuthPackage(),
         //new RNFirebaseRemoteConfigPackage(),
         //new RNFirebaseCrashPackage(),
         new RNFirebaseDatabasePackage(),

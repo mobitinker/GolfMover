@@ -19,7 +19,8 @@ import DeviceInfo from 'react-native-device-info';
 import BackgroundGeolocation from "../../react-native-background-geolocation";
 
 const STORAGE_KEY = "@transistorsoft:";
-const TRACKER_HOST = 'http://tracker.transistorsoft.com/locations/';
+//const TRACKER_HOST = 'http://tracker.transistorsoft.com/locations/';
+const TRACKER_HOST = 'https://golfmover-test.herokuapp.com/locations/';
 
 const GEOFENCE_RADIUS_OPTIONS = {
   "20":"20",

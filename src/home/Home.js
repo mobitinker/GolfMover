@@ -23,8 +23,9 @@ import BackgroundGeolocation from "../react-native-background-geolocation";
 
 import prompt from 'react-native-prompt-android';
 
-const DEFAULT_USERNAME = "react-native-anonymous";
-const TRACKER_HOST = 'http://tracker.transistorsoft.com/';
+const DEFAULT_USERNAME = "mobitinker";
+//const TRACKER_HOST = 'http://tracker.transistorsoft.com/';
+const TRACKER_HOST = 'https://golfmover-test.herokuapp.com/';
 const USERNAME_KEY = '@transistorsoft:username';
 
 // Only allow alpha-numeric usernames with '-' and '_'
@@ -36,8 +37,11 @@ export default class Home extends Component<{}> {
 
     let navigation = props.navigation;
     this.state = {
-      username: navigation.state.params.username,
-      url: TRACKER_HOST + navigation.state.params.username
+      //mkm username: navigation.state.params.username,
+      //mkm url: TRACKER_HOST + navigation.state.params.username
+      username: "mobitinker",
+      url: TRACKER_HOST + "mobitinker",
+      isLocalHost: true
     }
   }
 
@@ -47,7 +51,7 @@ export default class Home extends Component<{}> {
     BackgroundGeolocation.removeListeners();
 
     if (!this.state.username) {
-      this.getUsername().then(this.doGetUsername.bind(this)).catch(() => {
+      this.getUsername().then(this.setUserName.bind(this)).catch(() => {
         this.onClickEditUsername();
       });
     }
@@ -67,7 +71,7 @@ export default class Home extends Component<{}> {
   onClickEditUsername() {
     AsyncStorage.getItem(USERNAME_KEY, (err, username) => {
       AsyncStorage.removeItem(USERNAME_KEY);
-      this.getUsername(username).then(this.doGetUsername.bind(this)).catch(() => {
+      this.getUsername(username).then(this.setUserName.bind(this)).catch(() => {
         // Revert to current username on [Cancel]
         AsyncStorage.setItem(USERNAME_KEY, username);
         this.onClickEditUsername();
@@ -125,7 +129,7 @@ export default class Home extends Component<{}> {
     });
   }
 
-  doGetUsername(username) {
+  setUserName(username) {
     AsyncStorage.setItem(USERNAME_KEY, username);
 
     this.setState({
@@ -141,7 +145,7 @@ export default class Home extends Component<{}> {
       <Container>
         <Header style={styles.header}>
           <Body>
-            <Title style={styles.title}>Golf Mover</Title>
+            <Title style={styles.title}>GolfMover</Title>
           </Body>
         </Header>
         <Body style={styles.body}>

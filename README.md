@@ -1,4 +1,4 @@
-# [Golf Mover]
+# [GolfMover]
 
 ## Introduction
 
