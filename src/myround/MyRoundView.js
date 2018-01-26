@@ -1,5 +1,5 @@
 /**
-* The AdvancedApp contains its own child-router for routing to:
+* The MyRoundView contains its own child-router for routing to:
 * - SettingsView
 * - GeofenceView
 * - AboutView
@@ -13,7 +13,7 @@ import SettingsView from './SettingsView';
 import GeofenceView from './GeofenceView';
 import AboutView from './AboutView';
 
-export default AdvancedApp = StackNavigator({
+export default MyRoundView = StackNavigator({
   Home: {
     screen: HomeView
   },

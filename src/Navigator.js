@@ -1,7 +1,7 @@
 /**
 * This is the Application's root navigator which automatically routes to the currently
 * selected view
-* - Advanced
+* - MyRound
 *
 * The default route is home/Home
 *
@@ -19,13 +19,13 @@ import {
 import { StackNavigator, NavigationActions } from 'react-navigation';
 
 import Home from './home/Home';
-import AdvancedApp from './advanced/AdvancedApp';
+import MyRoundView from './myround/MyRoundView';
 
 class Root extends Component<{}> {
   componentDidMount() {
     let navigation = this.props.navigation;
 
-    // Fetch current routeName (ie: Advanced)
+    // Fetch current routeName (ie: MyRound)
     AsyncStorage.getItem("@transistorsoft:initialRouteName", (err, page) => {
       let params = {username: undefined};
       if (!page) {
@@ -59,8 +59,8 @@ export default Navigator = StackNavigator({
   Home: {
     screen: Home
   },
-  Advanced: {
-    screen: AdvancedApp
+  MyRound: {
+    screen: MyRoundView
   }
 }, {
   initialRouteName: 'Root',
@@ -68,7 +68,7 @@ export default Navigator = StackNavigator({
   onTransitionStart: (transition) => {
     // Store the current page route as the initialRouteName so that app boots immediately
     // into the currently selected SampleApp
-    // - Advanced
+    // - MyRound
     let routeName = transition.scene.route.routeName;
     AsyncStorage.setItem("@transistorsoft:initialRouteName", routeName);
   }

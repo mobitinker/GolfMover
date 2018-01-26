@@ -150,7 +150,7 @@ export default class Home extends Component<{}> {
         </Header>
         <Body style={styles.body}>
             <H1 style={styles.h1}>Example Views</H1>
-            <Button full style={styles.button} onPress={() => this.onClickNavigate('Advanced')}><Text>My round</Text></Button>
+            <Button full style={styles.button} onPress={() => this.onClickNavigate('MyRound')}><Text>My round</Text></Button>
         </Body>
 
         <Footer style={styles.footer}>
