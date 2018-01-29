@@ -148,9 +148,6 @@ const SOUND_MAP = {
   }
 };
 
-// Auto-incrementing id For creating test geofences.
-let geofenceNextId = 0;
-
 let instance = null;
 
 class SettingsService {
@@ -495,6 +492,7 @@ class SettingsService {
   getTestGeofences() {
     var data = this.getCourseData();
     var geofences = [];
+    let geofenceNextId = 0;
 
     for (var n=0, len=data.length;n<len;n++) {
       ++geofenceNextId

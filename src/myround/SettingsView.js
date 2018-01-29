@@ -75,7 +75,6 @@ export default class SettingsView extends Component<{}> {
   */
   onClickClose() {
     this.props.navigation.goBack();
-    this.settingsService.playSound('CLOSE');
   }
 
   /**
@@ -192,7 +191,7 @@ export default class SettingsView extends Component<{}> {
         <Header style={styles.header}>
           <Left>
             <Button small transparent dark onPress={this.onClickClose.bind(this)}>
-              <Icon color="#000" active name="ios-arrow-dropdown-circle" />
+              <Icon active name="arrow-back" style={{color: '#000'}}/>
             </Button>
           </Left>
           <Body>

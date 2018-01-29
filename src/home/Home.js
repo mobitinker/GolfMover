@@ -22,6 +22,7 @@ import {
 import BackgroundGeolocation from "../react-native-background-geolocation";
 
 import prompt from 'react-native-prompt-android';
+import appStyles from '../themes/ApplicationStyles'
 
 const DEFAULT_USERNAME = "mobitinker";
 //const TRACKER_HOST = 'http://tracker.transistorsoft.com/';
@@ -141,6 +142,7 @@ export default class Home extends Component<{}> {
   }
 
   render() {
+    console.log("Styles", styles)
     return (
       <Container>
         <Header style={styles.header}>
@@ -149,10 +151,10 @@ export default class Home extends Component<{}> {
           </Body>
         </Header>
         <Body style={styles.body}>
-            <H1 style={styles.h1}>Example Views</H1>
             <Button full style={styles.button} onPress={() => this.onClickNavigate('MyRound')}><Text>My round</Text></Button>
+            <Button full style={styles.button} onPress={() => this.onClickNavigate('Auth')}><Text>Login/Register</Text></Button>
         </Body>
-
+        { /*
         <Footer style={styles.footer}>
             <Card style={styles.userInfo}>
               <Text style={styles.p}>These views will post locations to the demo server.  You can view your tracking in the browser by visiting:</Text>
@@ -172,49 +174,13 @@ export default class Home extends Component<{}> {
               </CardItem>
             </Card>
         </Footer>
+        */ }
       </Container>
     );
   }
 }
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: '#fedd1e'
-  },
-  title: {
-    color: '#000'
-  },
-  body: {
-    width: '100%',
-    justifyContent: 'center',
-    backgroundColor:'#272727'
-  },
-  h1: {
-    color: '#fff',
-    marginBottom: 20
-  },
-  p: {
-    fontSize: 12,
-    marginBottom: 5
-  },
-  url: {
-    fontSize: 12,
-    textAlign: 'center'
-  },
-  button: {
-    marginBottom: 10
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  footer: {
-    backgroundColor:"transparent",
-    height: 215
-  },
-  userInfo: {
-    padding: 10
-  }
-});
+  ...appStyles,
+  // Local styles
+})
