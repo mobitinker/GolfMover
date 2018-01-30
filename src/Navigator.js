@@ -28,15 +28,15 @@ class Root extends Component<{}> {
     let navigation = this.props.navigation;
 
     // Fetch current routeName (ie: MyRound)
-    AsyncStorage.getItem("@transistorsoft:initialRouteName", (err, page) => {
+    AsyncStorage.getItem("@murphysw:initialRouteName", (err, page) => {
       let params = {username: undefined};
       if (!page) {
         // Default route:  Home
         page = "Home";
-        AsyncStorage.setItem("@transistorsoft:initialRouteName", page);
+        AsyncStorage.setItem("@murphysw:initialRouteName", page);
       }
       // Append username to route params.
-      AsyncStorage.getItem("@transistorsoft:username", (err, username) => {
+      AsyncStorage.getItem("@murphysw:username", (err, username) => {
         // Append username to route-params
         if (username) { params.username = username; }
         navigation.dispatch(NavigationActions.reset({
@@ -74,6 +74,6 @@ export default Navigator = StackNavigator({
     // Store the current page route as the initialRouteName so that app boots immediately
     // into the currently selected SampleApp
     let routeName = transition.scene.route.routeName;
-    AsyncStorage.setItem("@transistorsoft:initialRouteName", routeName);
+    AsyncStorage.setItem("@murphysw:initialRouteName", routeName);
   }
 });

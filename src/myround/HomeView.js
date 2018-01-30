@@ -627,7 +627,6 @@ export default class HomeView extends Component<{}> {
   }
 
   onClickHome() {
-    this.settingsService.playSound('BUTTON_CLICK');
     App.goHome(this.props.navigation);
   }
 

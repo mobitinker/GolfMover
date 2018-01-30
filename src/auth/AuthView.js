@@ -9,6 +9,7 @@ import appStyles from '../themes/ApplicationStyles'
 import firebase from 'react-native-firebase';
 import Modal from "react-native-modal";
 import { NavigationActions } from 'react-navigation';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 const Form = t.form.Form;
 
@@ -72,33 +73,21 @@ const options = {
   stylesheet: formStyles,
 };
 
-//TODO remove after dev
-const debugUser = {
-  email: "mobitinker2@gmail.com",
-  password: "Laika11!",
-  displayName: "Murph"
-}
-
 export default class AuthView extends Component {
 
   constructor(props) {
     super(props);
 
+    // TODO Modify form styles Here not working
+    //t.form.Form.stylesheet.textbox.normal.borderColor = "#333333"
     this.state = {
       authError: null
     }
   }
 
-  // Return to previous window
+  // Return home
   onClickBack() {
-    this.props.navigation.dispatch(NavigationActions.reset({
-      index: 0,
-      key: null,
-      actions: [
-        NavigationActions.navigate({routeName: "Home"})
-      ]
-    }));
-
+    App.goHome(this.props.navigation);
   }
 
   // Handle login
@@ -109,8 +98,6 @@ export default class AuthView extends Component {
   }
   firebase.auth().signInWithEmailAndPassword(value.email, value.password)
     .then((user) => {
-      // The user will be logged in automatically by the
-      // `onAuthStateChanged` listener in App.js
       console.log("Login successful")
       this.onClickBack()
     })
@@ -128,15 +115,13 @@ export default class AuthView extends Component {
 
   // Handle registration
   onRegister = () => {
-    console.log("Registering...")
     const value = this._form.getValue();
     if (!value) {
       return
     }
+    console.log("Registering...")
     firebase.auth().createUserWithEmailAndPassword(value.email, value.password)
       .then((user) => {
-        // The user will be logged in automatically by the
-        // `onAuthStateChanged` listener in App.js
         console.log("Registration successful")
         this.onClickBack()
       })
@@ -152,8 +137,73 @@ export default class AuthView extends Component {
       });
   }
 
+  // Handle forgot password
+  onForgotPassword = () => {
+    const value = this._form.getValue();
+    if (!value) {
+      return
+    }
+    console.log("Resetting password")
+    firebase.auth().sendPasswordResetEmail(value.email)
+      .then((user) => {
+        console.log("Password reset successful")
+        this.onClickBack()
+      })
+      .catch((error) => {
+        //const { code, message } = error;
+        // For details of error codes, see the docs
+        // (https://github.com/gcanti/tcomb-form-native).
+        // message contains the default Firebase error message
+        console.log("Password reset failed")
+        this.setState({
+          authError: error
+        });
+      });
+  }
+
+  // Handle logout
+  onLogout = () => {
+    console.log("Logging out")
+    firebase.auth().signOut()
+      .then((user) => {
+        console.log("Logout successful")
+        this.onClickBack()
+      })
+      .catch((error) => {
+        //const { code, message } = error;
+        // For details of error codes, see the docs
+        // (https://github.com/gcanti/tcomb-form-native).
+        // message contains the default Firebase error message
+        console.log("Logout failed", error)
+        this.setState({
+          authError: error
+        });
+      });
+      //this.setState(curUser: null)
+  }
+
   clearError = () => {
     this.setState({authError: null})
+  }
+
+  setFormValues() {
+    let formValues
+    if (firebase.auth().currentUser) {
+      let curUser = firebase.auth().currentUser._user
+      formValues = {
+        email: curUser.email,
+        password: "",
+        displayName: ""
+      }
+    } else {
+      formValues = {
+        email: "",
+        password: "",
+        displayName: ""
+      }
+    }
+    console.log("Setting form values: ", formValues)
+    return formValues
   }
 
   // Show authorization error in a modal
@@ -164,7 +214,7 @@ export default class AuthView extends Component {
     return (
       <Container style={styles.modalContainer}>
         <Modal isVisible={error != null}>
-          <View style={styles.bottomModal}>
+          <View >
             <Text style={styles.modalContent}>{error.message}</Text>
             <Button style={styles.modalButton} onPress={this.clearError.bind(this)}>
               <Text>OK</Text>
@@ -176,6 +226,9 @@ export default class AuthView extends Component {
   }
 
   render() {
+    //console.log("stylesheet: ", t.form.Form.stylesheet)
+    //console.log(t.form.Form.stylesheet.textbox.normal.borderColor)
+    console.log("rendering")
     return (
       <Container>
         <Header style={styles.header}>
@@ -189,17 +242,24 @@ export default class AuthView extends Component {
           </Body>
         </Header>
 
-        <Form
-          ref={c => this._form = c}
-          type={User}
-          options={options}
-          value={debugUser}
-        />
-        <Body style={styles.body}>
-          <Button full style={styles.button} onPress={() => this.onLogin()}><Text>Login</Text></Button>
-          <Button full style={styles.button} onPress={() => this.onRegister('Register')}><Text>Register/Register</Text></Button>
+        <Body style={styles.formBody}>
+          <KeyboardAwareScrollView>
+            <Form
+              ref={c => this._form = c}
+              type={User}
+              options={options}
+              value={this.setFormValues()}
+            />
+            <View style={styles.margin20} />
+            <View style={styles.contHorzCenteredColumn}>
+              <Button block style={styles.button} onPress={() => this.onLogin()}><Text>Login</Text></Button>
+              <Button block style={styles.button} onPress={() => this.onRegister()}><Text>Register</Text></Button>
+              <Button transparent primary onPress={() => this.onForgotPassword()}><Text>I forgot my password</Text></Button>
+              <Button transparent primary style={styles.button} onPress={() => this.onLogout()}><Text>Logout</Text></Button>
+            </View>
+          </KeyboardAwareScrollView>
+          {this.renderAuthError(this.state.authError)}
         </Body>
-        {this.renderAuthError(this.state.authError)}
       </Container>
     );
   }

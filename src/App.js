@@ -14,6 +14,7 @@ export default class App extends Component<{}> {
     super();
     this.state = {
       loading: true,
+      curUser: null
     };
   }
 
@@ -38,11 +39,12 @@ export default class App extends Component<{}> {
    */
   componentDidMount() {
     this.authSubscription = firebase.auth().onAuthStateChanged((user) => {
-      console.log("App user: ", user)
+      // TODO remove if not used
       this.setState({
         loading: false,
-        user,
+        curUser: user
       });
+      // Currently using firebase.auth().currentUser to tell current login state
     });
   }
 

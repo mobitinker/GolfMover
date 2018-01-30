@@ -13,6 +13,12 @@ const ApplicationStyles = {
     justifyContent: 'center',
     backgroundColor:'#272727'
   },
+  formBody: {
+    width: '100%',
+    padding: 10,
+    justifyContent: 'center',
+    backgroundColor:'#dddddd'
+  },
   h1: {
     color: '#fff',
     marginBottom: 20
@@ -28,12 +34,21 @@ const ApplicationStyles = {
   button: {
     marginBottom: 10
   },
+  // For vertical spacing
+  margin20: {
+    marginTop: 20
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5FCFF',
   },
+  contHorzCenteredColumn: {
+    flexDirection: 'column',
+    alignItems: 'center'
+  },
+
   footer: {
     backgroundColor:"transparent",
     height: 215
@@ -41,7 +56,7 @@ const ApplicationStyles = {
   userInfo: {
     padding: 10
   },
-  
+
   modalContainer: {
     flex: 1,
     justifyContent: "center",

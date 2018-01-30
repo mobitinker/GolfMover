@@ -27,7 +27,7 @@ import appStyles from '../themes/ApplicationStyles'
 const DEFAULT_USERNAME = "mobitinker";
 //const TRACKER_HOST = 'http://tracker.transistorsoft.com/';
 const TRACKER_HOST = 'https://golfmover-test.herokuapp.com/';
-const USERNAME_KEY = '@transistorsoft:username';
+const USERNAME_KEY = '@murphysw:username';
 
 // Only allow alpha-numeric usernames with '-' and '_'
 const USERNAME_VALIDATOR =  /^[a-zA-Z0-9_-]*$/;
@@ -151,8 +151,8 @@ export default class Home extends Component<{}> {
           </Body>
         </Header>
         <Body style={styles.body}>
-            <Button full style={styles.button} onPress={() => this.onClickNavigate('MyRound')}><Text>My round</Text></Button>
-            <Button full style={styles.button} onPress={() => this.onClickNavigate('Auth')}><Text>Login/Register</Text></Button>
+            <Button block style={styles.button} onPress={() => this.onClickNavigate('MyRound')}><Text>My round</Text></Button>
+            <Button block style={styles.button} onPress={() => this.onClickNavigate('Auth')}><Text>Login/Register</Text></Button>
         </Body>
         { /*
         <Footer style={styles.footer}>
