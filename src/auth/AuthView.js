@@ -66,7 +66,7 @@ const options = {
     },
     password: {
       autoCapitalize: 'none',
-      //TODO secureTextEntry: true,
+      secureTextEntry: true,
       error: 'Password must be at least 8 characters, 1 uppercase, 1 lowercase, 1 numeral and 1 punctuation'
     },
   },
@@ -167,7 +167,6 @@ export default class AuthView extends Component {
     firebase.auth().signOut()
       .then((user) => {
         console.log("Logout successful")
-        this.onClickBack()
       })
       .catch((error) => {
         //const { code, message } = error;

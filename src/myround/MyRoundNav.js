@@ -8,14 +8,14 @@ import React, { Component } from 'react';
 
 import { StackNavigator, NavigationActions } from 'react-navigation';
 
-import HomeView from './HomeView';
+import MyRoundView from './MyRoundView';
 import SettingsView from './SettingsView';
 import GeofenceView from './GeofenceView';
 import AboutView from './AboutView';
 
-export default MyRoundView = StackNavigator({
-  Home: {
-    screen: HomeView
+export default MyRoundNav = StackNavigator({
+  MyRound: {
+    screen: MyRoundView
   },
   Settings: {
     screen: SettingsView

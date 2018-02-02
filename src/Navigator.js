@@ -16,6 +16,7 @@ import {
   Text,
   StyleSheet
 } from 'react-native';
+import firebase from 'react-native-firebase';
 
 import { StackNavigator, NavigationActions } from 'react-navigation';
 
@@ -25,6 +26,7 @@ import AuthView from './auth/AuthView';
 
 class Root extends Component<{}> {
   componentDidMount() {
+    console.log("Mounted Navigator")
     let navigation = this.props.navigation;
 
     // Fetch current routeName (ie: MyRound)
@@ -39,13 +41,23 @@ class Root extends Component<{}> {
       AsyncStorage.getItem("@murphysw:username", (err, username) => {
         // Append username to route-params
         if (username) { params.username = username; }
-        navigation.dispatch(NavigationActions.reset({
-          index: 0,
-          key: null,
-          actions: [
-            NavigationActions.navigate({ routeName: page, params: params})
-          ]
-        }));
+        if (!firebase.auth().currentUser) {
+          navigation.dispatch(NavigationActions.reset({
+            index: 0,
+            key: null,
+            actions: [
+              NavigationActions.navigate({ routeName: 'Auth', params: params})
+            ]
+          }));
+        } else {
+          navigation.dispatch(NavigationActions.reset({
+            index: 0,
+            key: null,
+            actions: [
+              NavigationActions.navigate({ routeName: page, params: params})
+            ]
+          }));
+        }
       });
     });
   }

@@ -87,15 +87,17 @@ export default class SettingsView extends Component<{}> {
   onChangeTrackingMode(value) {
     if (this.state.trackingMode === value) { return; }
     this.setState({trackingMode: value});
-    if (value === 'location') {
+    //if (value === 'location') {
       BackgroundGeolocation.start((state) => {
         console.log('- Start location tracking mode');
       });
+    /* Disabling geofence
     } else {
       BackgroundGeolocation.startGeofences((state) => {
         console.log('- Start geofence tracking mode');
       });
     }
+    */
   }
 
   onChangeEmail(value) {

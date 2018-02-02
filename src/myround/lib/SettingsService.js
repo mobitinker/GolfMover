@@ -112,11 +112,11 @@ const PLUGIN_SETTINGS = {
     {show: false, name: 'triggerActivities', group: 'activity recognition', dataType: 'string', inputType: 'select', values: ['in_vehicle', 'on_bicycle', 'on_foot', 'running', 'walking'], defaultValue: 'in_vehicle, on_bicycle, running, walking, on_foot'},
 
     // Application
-    {show: false, name: 'foregroundService', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
+    {show: true, name: 'foregroundService', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: true},
     {show: false, name: 'forceReloadOnMotionChange', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
     {show: false, name: 'forceReloadOnLocationChange', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
     {show: false, name: 'forceReloadOnGeofence', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
-    {show: false, name: 'forceReloadOnHeartbeat', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
+    {show: true, name: 'forceReloadOnHeartbeat', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: true},
     {show: false, name: 'notificationPriority', group: 'application', dataType: 'string', inputType: 'select', values: ['DEFAULT', 'HIGH', 'LOW', 'MAX', 'MIN'], defaultValue: 'DEFAULT'}
   ]
 };

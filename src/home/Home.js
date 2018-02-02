@@ -18,7 +18,7 @@ import {
   Title,
   Form, Item, Input, Label
 } from 'native-base';
-
+import firebase from 'react-native-firebase';
 import BackgroundGeolocation from "../react-native-background-geolocation";
 
 import prompt from 'react-native-prompt-android';
@@ -47,9 +47,24 @@ export default class Home extends Component<{}> {
   }
 
   componentDidMount() {
+    console.log("Mounted Home")
+
+    // Redirect to login if no current user
+    if (!firebase.auth().currentUser) {
+      navigation.dispatch(NavigationActions.reset({
+        index: 0,
+        key: null,
+        actions: [
+          NavigationActions.navigate({ routeName: 'Auth', params: params})
+        ]
+      }));
+    }
+
+    /* TODO remove
     // #stop BackroundGeolocation and remove-listeners when Home Screen is rendered.
     BackgroundGeolocation.stop();
     BackgroundGeolocation.removeListeners();
+    */
 
     if (!this.state.username) {
       this.getUsername().then(this.setUserName.bind(this)).catch(() => {
