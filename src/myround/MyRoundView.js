@@ -903,7 +903,13 @@ export default class MyRoundView extends Component<{}> {
             <Title style={styles.title}>My Round</Title>
           </Body>
           <Right>
-            <Switch onValueChange={() => this.onPlayStateChanged()} value={this.state.enabled} />
+            <Button small
+              danger={this.state.enabled}
+              success={!this.state.enabled}
+              onPress={this.onPlayStateChanged.bind(this)}>
+              <Text>{this.state.enabled ? "Stop" : "Start"}</Text>
+            </Button>
+
           </Right>
         </Header>
 
