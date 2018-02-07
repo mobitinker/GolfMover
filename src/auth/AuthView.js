@@ -90,6 +90,25 @@ export default class AuthView extends Component {
     App.goHome(this.props.navigation);
   }
 
+  // Login as mobitinker
+  onTestLogin = () => {
+    firebase.auth().signInWithEmailAndPassword('mobitinker@gmail.com', 'Laika11!')
+      .then((user) => {
+        console.log("Test login successful")
+        this.onClickBack()
+      })
+      .catch((error) => {
+        //const { code, message } = error;
+        // For details of error codes, see the docs
+        // (https://github.com/gcanti/tcomb-form-native).
+        // message contains the default Firebase error message
+        console.log("Login failed")
+        this.setState({
+          authError: error
+        });
+      });
+  }
+
   // Handle login
   onLogin = () => {
   const value = this._form.getValue();
@@ -255,6 +274,7 @@ export default class AuthView extends Component {
               <Button block style={styles.button} onPress={() => this.onRegister()}><Text>Register</Text></Button>
               <Button transparent primary onPress={() => this.onForgotPassword()}><Text>I forgot my password</Text></Button>
               <Button transparent primary style={styles.button} onPress={() => this.onLogout()}><Text>Logout</Text></Button>
+              <Button transparent primary style={styles.button} onPress={() => this.onTestLogin()}><Text>Login as mobitinker (test)</Text></Button>
             </View>
           </KeyboardAwareScrollView>
           {this.renderAuthError(this.state.authError)}

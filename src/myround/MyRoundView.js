@@ -6,6 +6,7 @@ import {
   View
 } from 'react-native';
 import firebase from 'react-native-firebase';
+import Modal from "react-native-modal";
 
 // For posting to tracker.transistorsoft.com
 import DeviceInfo from 'react-native-device-info';
@@ -68,14 +69,15 @@ export default class MyRoundView extends Component<{}> {
   constructor(props) {
     super(props);
 
+    let t = (new Date()).getTime()
+
     this.state = {
       enabled: false,
       isMoving: false,
       trackingMode: "location", //mkm
       motionActivity: {activity: 'unknown', confidence: 100},
       lastMotionChangeLocation: undefined,
-      lastMotionTime: firebase.database.ServerValue.TIMESTAMP,
-      lastActivityTime: firebase.database.ServerValue.TIMESTAMP,
+      lastMotionTime: t,
       odometer: 0,
       username: props.navigation.state.params.username,
       // ActionButton state
@@ -104,8 +106,12 @@ export default class MyRoundView extends Component<{}> {
       settings: {},
       // BackgroundGeolocation state
       bgGeo: {},
+      // Firebase stuff
       db: null,
-      currentRoundRef: null
+      currentRoundRef: null,
+      currentRound: this.newCurrentRound(null),
+      // UI stuff
+      showStopConfirm: false
     };
 
     this.settingsService = SettingsService.getInstance();
@@ -113,10 +119,10 @@ export default class MyRoundView extends Component<{}> {
   }
 
   componentDidMount() {
-    console.log("Mounted MyRoundView")
 
-    // Fetch BackgroundGeolocation current state and use that as our config object.  we use the config as persisted by the
-    // Settings screen to configure the plugin.
+    // Fetch BackgroundGeolocation current state and use that as our config object.
+    // We use the config as persisted by the
+    // settings screen to configure the plugin.
     this.settingsService.getPluginState((state) => {
       this.configureBackgroundGeolocation(state);
     });
@@ -128,10 +134,18 @@ export default class MyRoundView extends Component<{}> {
       });
     });
 
+    let db = firebase.database()
     // Get database
     this.setState( {
-      db:firebase.database()
+      db: db
     });
+
+    //TODO debug remove previous data for easier debugging
+    db.ref("activityChanges").remove()
+    db.ref("errors").remove()
+    db.ref("events").remove()
+    db.ref("motionchange").remove()
+    db.ref("motionChanges").remove()
   }
 
   configureBackgroundGeolocation(config) {
@@ -164,6 +178,7 @@ export default class MyRoundView extends Component<{}> {
     config.geofenceProximityRadius = 10000  // Should get all for current course
 
     BackgroundGeolocation.configure(config, (state) => {
+      state.enabled = false  //Force user to restart round
       this.setState({
         enabled: state.enabled,
         isMoving: state.isMoving,
@@ -184,11 +199,15 @@ export default class MyRoundView extends Component<{}> {
     console.log("Done mounting")
   }
 
-  logError(error) {
+  /**
+  * Log a message in 'errors' on Firebase
+  */
+  logError(msg) {
+    console.log("Logging: ", msg)
     this.state.db.ref("errors").push(
       {
         errorTime : firebase.database.ServerValue.TIMESTAMP,
-        error: error,
+        error: msg,
       }
     )
 
@@ -199,6 +218,17 @@ export default class MyRoundView extends Component<{}> {
   */
   onLocation(location) {
     console.log('[event] location: ', location);
+    /* This hits a bug in BackgroundGeolocation
+      BackgroundGeolocation.getCount((count) => {
+        if (count) {
+          console.log('debug Locations in DB: ', BackgroundGeolocation.getCount())
+          return
+        } else {
+          console.log('debug The db is empty')
+          return
+        }
+      })
+    */
     // Log event
     this.state.db.ref("events").push(
       {
@@ -208,6 +238,13 @@ export default class MyRoundView extends Component<{}> {
       }
     )
 
+    if (this.state.currentRound) {
+      cr = this.state.currentRound
+      cr.currentLocation = location
+      if (this.state.currentRoundRef) {
+        this.state.currentRoundRef.set(cr)
+      }
+    }
 
     if (!location.sample) {
       this.addMarker(location);
@@ -223,8 +260,8 @@ export default class MyRoundView extends Component<{}> {
   */
   onMotionChange(event) {
     console.log('[event] motionchange: ', event.isMoving, event.location);
-
-    let eventTime = firebase.database.ServerValue.TIMESTAMP
+    let t = (new Date()).getTime()
+    let eventTime = t
     let duration = eventTime - this.state.lastMotionTime
 
     // Log event
@@ -239,11 +276,12 @@ export default class MyRoundView extends Component<{}> {
 
     let location = event.location;
 
+    //TODO determine what's being done here. Confusing with state and this.state naming
     let state = {
       isMoving: event.isMoving
     };
-
     if (event.isMoving) {
+      // We've gone to moving
       if (this.state.lastMotionChangeLocation) {
         state.stopZones = [...this.state.stopZones, {
           coordinate: {
@@ -255,14 +293,18 @@ export default class MyRoundView extends Component<{}> {
       }
 
       // Report end of stopped to Firebase
-      this.state.db.ref("motionChanges").push(
-        {
-          eventName: "timeStopped",
-          eventTime : eventTime,
-          duration : duration
-        }
-      )
-
+      let cr = this.state.currentRound
+      if (cr) {
+        cr.moving = true
+        cr.timeStill = cr.timeStill + duration
+        cr.curLocation = event.location
+        cr.curLocationTime = t
+        this.setState({
+          currentRound: cr,
+          location : event.location
+        })
+        this.state.currentRoundRef.set(cr)
+      }
       state.stationaryRadius = 0,
       state.stationaryLocation = {
         timestamp: '',
@@ -270,6 +312,7 @@ export default class MyRoundView extends Component<{}> {
         longitude: 0
       };
     } else {
+      // We've gone to "Still"
       state.stationaryRadius = (this.settingsService.isLocationTrackingMode()) ? 200 : (this.state.bgGeo.geofenceProximityRadius/2);
       state.stationaryLocation = {
         timestamp: location.timestamp,
@@ -278,15 +321,22 @@ export default class MyRoundView extends Component<{}> {
       };
 
       // Report end of moving to Firebase
-      this.state.db.ref("motionChanges").push(
-        {
-          eventName: "timeMoving",
-          eventTime : eventTime,
-          duration : duration
+      let cr = this.state.currentRound
+      if (cr) {
+        cr.moving = false
+        cr.timeMoving = cr.timeMoving + duration
+        cr.curLocation = event.location
+        cr.curLocationTime = t
+        this.setState({
+          currentRound: cr,
+          location : event.location
+        })
+        if (this.state.currentRoundRef) {
+          this.state.currentRoundRef.set(cr)
         }
-      )
-
+      }
     }
+    //TODO try combining setStates below
     this.setState(state);
     this.setState({
       lastMotionChangeLocation: location,
@@ -299,43 +349,18 @@ export default class MyRoundView extends Component<{}> {
   */
   onActivityChange(event) {
     console.log('[event] activitychange: ', event);
-
-    let lastChangeEvent = this.state.motionActivity
-    let isNew = !lastChangeEvent || lastChangeEvent.activity != event.activity
-    if (isNew) {
-      this.state.db.ref("events").push(
-        {
-          eventName: "activitychange",
-          eventTime : firebase.database.ServerValue.TIMESTAMP,
-          activity : event.activity,
-          confidence : event.confidence
-        }
-      )
-
-      // Record in Firebase if we are changing to or from still to compare with motion changes
-      if ((event.activity === "still") || (lastChangeEvent.activity === "still")) {
-        // Going to or from "still" ...
-        let eventTime = firebase.database.ServerValue.TIMESTAMP
-        let duration = eventTime - this.state.lastActivityTime
-        this.state.db.ref("activityChanges").push(
-          {
-            eventName: event.activity == "still" ?  "timeMoving" : "timeStopped",
-            eventTime : firebase.database.ServerValue.TIMESTAMP,
-            activity : event.activity,
-            confidence : event.confidence,
-            duration : duration
-          }
-        )
-
-        this.setState({
-          lastActivityTime: eventTime
-        })
-      }
-
-    }
     this.setState({
       motionActivity: event
     });
+
+    this.state.db.ref("events").push(
+      {
+        eventName: "activitychange",
+        eventTime : firebase.database.ServerValue.TIMESTAMP,
+        activity : event.activity,
+        confidence : event.confidence
+      }
+    )
   }
 
   /**
@@ -522,48 +547,77 @@ export default class MyRoundView extends Component<{}> {
     )
   }
 
+  clearModal = () => {
+    this.setState({showStopConfirm: false})
+  }
+
   /**
-  * Toggle button handler for round start /stop
+  * If user confirms, turn off plugin here
   */
-  onToggleEnabled() {
-    console.log("toggle from", this.state.enabled)
-    /*
-    let stopConfirmed = false;
-    if (this.state.enabled) {
-      this.settingsService.confirm('Please confirm', 'Stop your current round? Data to this point will be kept.', () => {
-        console.log('Confirmed')
-        stopConfirmed = true;
-      });
-
-      if (!stopConfirmed) {
-        // User changed mind
-        console.log('cancelled')
-        return
-      }
-    }
-    console.log("Got here")
-    */
-
-    let enabled = !this.state.enabled;
-
+  endRound() {
     // Log event
     this.state.db.ref("events").push(
       {
         eventTime : firebase.database.ServerValue.TIMESTAMP,
         eventName : "pluginstatechange",
-        enabled : enabled
+        enabled : false
       }
     )
 
+    BackgroundGeolocation.stop();
+    // Clear markers, polyline, geofences, stationary-region
+    this.clearMarkers();
     this.setState({
-      enabled: enabled,
+      stationaryRadius: 0,
+      stationaryLocation: {
+        timestamp: '',
+        latitude: 0,
+        longitude: 0
+      },
+      enabled: false,
       isMoving: false,
       showsUserLocation: false,
-      followsUserLocation: false
+      followsUserLocation: false,
+      showStopConfirm: false
     });
 
-    if (enabled) {
+    //TODO update and move to completedRounds
+    if (this.state.currentRoundRef) {
+      this.state.currentRoundRef.remove()
+      this.setState({
+        currentRoundRef: null
+      })
+    }
+  }
 
+  /**
+  * Toggle button handler for round start / stop
+  */
+  onPlayStateChanged() {
+    console.log("About to change play state to ", !this.state.enabled)
+
+    let enabled = !this.state.enabled;
+
+    if (enabled) {
+      // Start the plugin
+
+      // Log event
+      this.state.db.ref("events").push(
+        {
+          eventTime : firebase.database.ServerValue.TIMESTAMP,
+          eventName : "pluginstatechange",
+          enabled : enabled
+        }
+      )
+
+      this.setState({
+        enabled: enabled,
+        isMoving: false,
+        showsUserLocation: false,
+        followsUserLocation: false
+      });
+
+      let t = (new Date()).getTime()
       BackgroundGeolocation.start((state) => {
         // We tell react-native-maps to access location only AFTER
         // the plugin has requested location, otherwise we have a permissions tug-of-war,
@@ -572,59 +626,29 @@ export default class MyRoundView extends Component<{}> {
           showsUserLocation: enabled,
           followsUserLocation: enabled,
           lastMotionChangeLocation: undefined,
-          lastMotionTime: firebase.database.ServerValue.TIMESTAMP,
-          lastActivityTime: firebase.database.ServerValue.TIMESTAMP
+          lastMotionTime: t,
         });
       });
-
       // Add a new current round to the database
       if (firebase.auth().currentUser) {
         let curUser = firebase.auth().currentUser._user
-        cr = {
-          courseId: null,
-          groupId: null,
-          playerId: curUser.uuid,
-          playerEmail: curUser.email,
-          onfoot: true,
-          curLocation: null,
-          curLocationTime: null,
-          timeStarted: firebase.database.ServerValue.TIMESTAMP,
-          currentHole: 1,
-          holeTimes: null,
-          timeStill: 0,
-          timeMoving: 0
-        }
-
+        // Create new current round
+        cr = this.newCurrentRound(curUser)
         let currentRoundRef = this.state.db.ref("currentRounds").push(cr)
         this.setState({
-          currentRoundRef: currentRoundRef
+          currentRoundRef: currentRoundRef,
+          currentRound: cr
         })
       } else {
         console.log("Unexpected absence of current user")
       }
-
-      console.log('Starting location tracking mode');
+      this.settingsService.toast("Round recording on")
+      console.log('Started location tracking mode');
     } else {
-      // Disabled
-      BackgroundGeolocation.stop();
-      // Clear markers, polyline, geofences, stationary-region
-      this.clearMarkers();
+      this.settingsService.toast("Round recording off")
       this.setState({
-        stationaryRadius: 0,
-        stationaryLocation: {
-          timestamp: '',
-          latitude: 0,
-          longitude: 0
-        }
-      });
-
-      //TODO update and move to completedRounds
-      if (this.state.currentRoundRef) {
-        this.state.currentRoundRef.remove()
-        this.setState({
-          currentRoundRef: null
-        })
-      }
+        showStopConfirm: true
+      })
     }
   }
 
@@ -655,14 +679,13 @@ export default class MyRoundView extends Component<{}> {
   /**
   * [>] / [||] button executes #changePace
   */
-  /* TODO Remove
+  // TODO Remove
   onClickChangePace() {
     console.log('- onClickChangePace');
     let isMoving = !this.state.isMoving;
     this.setState({isMoving: isMoving});
     BackgroundGeolocation.changePace(isMoving);
   }
-  */
 
   onClickHome() {
     App.goHome(this.props.navigation);
@@ -688,13 +711,14 @@ export default class MyRoundView extends Component<{}> {
         this.settingsService.playSound('OPEN');
         this.props.navigation.navigate('Settings');
         break;
+        case 'emailLog':
+          this.settingsService.playSound('BUTTON_CLICK');
+          this.emailLog();
+          break;
+      /*
       case 'resetOdometer':
         this.settingsService.playSound('BUTTON_CLICK');
         this.resetOdometer();
-        break;
-      case 'emailLog':
-        this.settingsService.playSound('BUTTON_CLICK');
-        this.emailLog();
         break;
       case 'sync':
         this.settingsService.playSound('BUTTON_CLICK');
@@ -704,9 +728,29 @@ export default class MyRoundView extends Component<{}> {
         this.settingsService.playSound('BUTTON_CLICK');
         this.destroyLocations();
         break;
+      */
     }
   }
 
+  /**
+  * Return a new currentRound object
+  */
+  newCurrentRound(curUser) {
+    return {
+      courseId: null,
+      groupId: null,
+      playerId: curUser ? curUser.uuid : null,
+      playerEmail: curUser ? curUser.email : null,
+      onfoot: true,
+      curLocation: null,
+      curLocationTime: null,
+      timeStarted: firebase.database.ServerValue.TIMESTAMP,
+      currentHole: 0,
+      holeTimes: null,
+      timeStill: 0,
+      timeMoving: 0
+    }
+  }
   /* TODO remove
   resetOdometer() {
     this.clearMarkers();
@@ -763,7 +807,6 @@ export default class MyRoundView extends Component<{}> {
       });
     });
   }
-  */
 
   destroyLocations() {
     BackgroundGeolocation.getCount((count) => {
@@ -783,19 +826,20 @@ export default class MyRoundView extends Component<{}> {
       });
     });
   }
+  */
 
   /**
   * Top-right map menu button-handler
   * [show/hide marker] [show/hide polyline] [show/hide geofence hits]
   */
   onClickMapMenu(command) {
-    this.settingsService.playSound('BUTTON_CLICK');
+    //this.settingsService.playSound('BUTTON_CLICK');
 
-    let enabled = !this.state.settings[command];
-    this.settingsService.set(command, enabled);
+    let enabled = !this.state.settings['hideMarkers'];
+    this.settingsService.set('hideMarkers', enabled);
 
     let settings = Object.assign({}, this.state.settings);
-    settings[command] = enabled;
+    settings['hideMarkers'] = enabled;
 
     this.setState({
       settings: settings
@@ -806,14 +850,33 @@ export default class MyRoundView extends Component<{}> {
       case 'hideMarkers':
         message += ' map markers';
         break;
+      /*
       case 'hidePolyline':
         message += ' polyline';
         break;
       case 'hideGeofenceHits':
         message += ' geofence transitions';
         break;
+     */
     }
     this.settingsService.toast(message, 'SHORT');
+  }
+
+  // Show stop round confirmation in a modal
+  renderStopPrompt = () => {
+    return (
+      <Modal isVisible={this.state.showStopConfirm}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.modalContent}>Are you sure you want to stop tracking your round?</Text>
+          <Button style={styles.modalButton} onPress={this.endRound.bind(this)}>
+            <Text>Yes</Text>
+          </Button>
+          <Button style={styles.modalButton} onPress={this.clearModal.bind(this)}>
+            <Text>No</Text>
+          </Button>
+        </View>
+      </Modal>
+    )
   }
 
   /**
@@ -830,14 +893,6 @@ export default class MyRoundView extends Component<{}> {
   }
 
   render() {
-    /* Additional actions for side menu:
-    <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('resetOdometer')}>
-      {!this.state.isResettingOdometer ? (<Icon name="ios-speedometer" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
-    </ActionButton.Item>
-    <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('sync')}>
-      {!this.state.isSyncing ? (<Icon name="ios-cloud-upload" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
-    </ActionButton.Item>
-    */
     return (
       <Container style={styles.container}>
         <Header style={styles.header}>
@@ -848,7 +903,7 @@ export default class MyRoundView extends Component<{}> {
             <Title style={styles.title}>My Round</Title>
           </Body>
           <Right>
-            <Switch onValueChange={() => this.onToggleEnabled()} value={this.state.enabled} />
+            <Switch onValueChange={() => this.onPlayStateChanged()} value={this.state.enabled} />
           </Right>
         </Header>
 
@@ -868,7 +923,7 @@ export default class MyRoundView extends Component<{}> {
           toolbarEnabled={false}>
           <MapView.Polyline
             key="polyline"
-            coordinates={(!this.state.settings.hidePolyline) ? this.state.coordinates : []}
+            coordinates={(!this.state.settings.hideMarkers) ? this.state.coordinates : []}
             geodesic={true}
             strokeColor='rgba(0,179,253, 0.6)'
             strokeWidth={6}
@@ -884,12 +939,6 @@ export default class MyRoundView extends Component<{}> {
         <View style={styles.mapMenu}>
           <Button small success light={this.state.settings.hideMarkers} style={styles.mapMenuButton} onPress={() => this.onClickMapMenu('hideMarkers') }>
             <Icon name="ios-pin" />
-          </Button>
-          <Button small success light={this.state.settings.hidePolyline} style={styles.mapMenuButton} onPress={() => this.onClickMapMenu('hidePolyline')}>
-            <Icon name="ios-pulse" />
-          </Button>
-          <Button small success light={this.state.settings.hideGeofenceHits} style={styles.mapMenuButton} onPress={() => this.onClickMapMenu('hideGeofenceHits')}>
-            <Icon name="ios-radio-button-off" />
           </Button>
         </View>
 
@@ -913,11 +962,8 @@ export default class MyRoundView extends Component<{}> {
           <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('emailLog')}>
             {!this.state.isEmailingLog ? (<Icon name="ios-mail" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
           </ActionButton.Item>
-          <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('destroyLocations')}>
-            {!this.state.isDestroyingLocations ? (<Icon name="ios-trash" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
-          </ActionButton.Item>
         </ActionButton>
-
+        {this.renderStopPrompt()}
         <Footer style={styles.footer}>
           <Left style={{flex:0.3}}>
             <Button small info onPress={this.onClickGetCurrentPosition.bind(this)}>
@@ -925,10 +971,16 @@ export default class MyRoundView extends Component<{}> {
             </Button>
           </Left>
           <Body style={styles.footerBody}>
-            <Text style={styles.status}>{this.state.motionActivity.activity}:{this.state.motionActivity.confidence}% conf</Text>
+            <Icon active name={this.getMotionActivityIcon()} style={styles.activityIcon}/>
+            <Text style={styles.status}>
+              S-{this.formatDuration(this.state.currentRound.timeStill)}
+            </Text>
+            <Text style={styles.status}>
+              &nbsp; M-{this.formatDuration(this.state.currentRound.timeMoving)}
+            </Text>
           </Body>
           <Right style={{flex: 0.3}}>
-            {/* Hide pace button
+            {/*
             <Button small
               danger={this.state.isMoving}
               success={!this.state.isMoving}
@@ -945,8 +997,28 @@ export default class MyRoundView extends Component<{}> {
     );
   }
 
+  /**
+  * Format duration in ms as 00:00:00
+  */
+  formatDuration(durationMS) {
+    var duration = Math.floor(durationMS / 1000)
+    var hours   = Math.floor(duration / 3600)
+    var minutes = Math.floor((duration - (hours * 3600)) / 60)
+    var seconds = duration - (hours * 3600) - (minutes * 60)
+
+    if (hours   < 10) {hours   = "0"+hours}
+    if (minutes < 10) {minutes = "0"+minutes}
+    if (seconds < 10) {seconds = "0"+seconds}
+    //return hours + ':' + minutes + ':' + seconds;
+    return hours + ':' + minutes
+  }
+
+  /**
+  * Returns an icon for the current activityType
+  */
   getMotionActivityIcon() {
     this.state.motionActivity.activity
+    console.log("Getting icon for " + this.state.motionActivity.activity)
     switch (this.state.motionActivity.activity) {
       case 'unknown':
         return 'ios-help-circle';
@@ -963,7 +1035,7 @@ export default class MyRoundView extends Component<{}> {
       case 'on_bicycle':
         return 'ios-bicycle';
       default:
-        return 'ios-help-cirlce';
+        return 'ios-help-circle';
     }
   }
 
@@ -1022,7 +1094,7 @@ export default class MyRoundView extends Component<{}> {
   }
 
   renderGeofencesHit() {
-    if (this.state.settings.hideGeofenceHits) { return; }
+    if (this.state.settings.hideMarkers) { return; }
     let rs = [];
     return this.state.geofencesHit.map((hit) => {
       return (
@@ -1227,6 +1299,7 @@ export default class MyRoundView extends Component<{}> {
   }
 }
 
+// TODO combine with global styles
 var styles = StyleSheet.create({
   container: {
     backgroundColor: '#272727'
@@ -1248,7 +1321,11 @@ var styles = StyleSheet.create({
     flex: 1
   },
   icon: {
-    color: '#fff'
+    color: '#ffffff'
+  },
+  activityIcon: {
+    color: '#000000',
+    marginRight: 10
   },
   map: {
     flex: 1
@@ -1321,5 +1398,32 @@ var styles = StyleSheet.create({
       textAlign: 'center',
       fontSize: 10,
       marginTop: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  modalButton: {
+    backgroundColor: "lightblue",
+    padding: 12,
+    margin: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 4,
+    borderColor: "rgba(0, 0, 0, 0.1)"
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 4,
+    borderColor: "rgba(0, 0, 0, 0.1)"
+  },
+  bottomModal: {
+    justifyContent: "flex-end",
+    margin: 0
   }
+
 });
