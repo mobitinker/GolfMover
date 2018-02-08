@@ -30,6 +30,13 @@ build/
 local.properties
 *.iml
 
+# Needed after changing location of bundle output
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/assets/index.android.bundle.meta
+
+index.android.bundle.meta
+
+
 # node.js
 #
 node_modules/
