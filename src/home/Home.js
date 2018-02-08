@@ -6,7 +6,8 @@ import {
   AsyncStorage,
   Alert,
   Linking,
-  View
+  View,
+  BackHandler
 } from 'react-native';
 import { NavigationActions } from 'react-navigation';
 import {
@@ -156,6 +157,17 @@ export default class Home extends Component<{}> {
     BackgroundGeolocation.setConfig({url: TRACKER_HOST + 'locations/' + username});
   }
 
+  /**
+  * Show Exit button on android Only
+  */
+  renderExit() {
+    if (Platform.OS === 'android') {
+      return (<Button block style={styles.button} onPress={() => BackHandler.exitApp()}><Text>Exit</Text></Button>)
+    } else {
+      return
+    }
+  }
+
   render() {
     console.log("Styles", styles)
     return (
@@ -168,6 +180,7 @@ export default class Home extends Component<{}> {
         <Body style={styles.body}>
             <Button block style={styles.button} onPress={() => this.onClickNavigate('MyRound')}><Text>My round</Text></Button>
             <Button block style={styles.button} onPress={() => this.onClickNavigate('Auth')}><Text>Login/Register</Text></Button>
+            {this.renderExit()}
         </Body>
         { /*
         <Footer style={styles.footer}>

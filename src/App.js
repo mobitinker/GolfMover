@@ -5,7 +5,7 @@
 import React, { Component } from 'react';
 import firebase from 'react-native-firebase';
 import { StackNavigator, NavigationActions } from 'react-navigation';
-
+import { Platform, BackHandler } from 'react-native'
 import {StyleProvider} from "native-base";
 import Navigator from './Navigator';
 
@@ -31,6 +31,15 @@ export default class App extends Component<{}> {
     }));
   }
 
+
+  componentWillMount() {
+    if (Platform.OS !== 'android') return
+    BackHandler.addEventListener('hardwareBackPress', () => {
+        // Always ignore back button
+        return true
+    })
+  }
+
   /**
    * When the App component mounts, we listen for any authentication
    * state changes in Firebase.
@@ -51,6 +60,7 @@ export default class App extends Component<{}> {
   componentWillUnmount() {
     // Stop listening for auth
     this.authSubscription();
+    if (Platform.OS === 'android') BackHandler.removeEventListener('hardwareBackPress')
   }
 
   render() {

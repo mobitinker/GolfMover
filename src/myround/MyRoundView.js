@@ -1024,7 +1024,6 @@ export default class MyRoundView extends Component<{}> {
   */
   getMotionActivityIcon() {
     this.state.motionActivity.activity
-    console.log("Getting icon for " + this.state.motionActivity.activity)
     switch (this.state.motionActivity.activity) {
       case 'unknown':
         return 'ios-help-circle';
