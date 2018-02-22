@@ -11,6 +11,7 @@ import Modal from "react-native-modal";
 // For posting to tracker.transistorsoft.com
 import DeviceInfo from 'react-native-device-info';
 import ActionButton from 'react-native-action-button';
+import courseMSG from './courseMSG'
 
 // Import native-base UI components
 import {
@@ -1007,6 +1008,7 @@ export default class MyRoundView extends Component<{}> {
           {this.renderActiveGeofences()}
           {this.renderGeofencesHit()}
           {this.renderGeofencesHitEvents()}
+          {this.renderCourse()}
         </MapView>
 
         <View style={styles.mapMenu}>
@@ -1089,6 +1091,14 @@ export default class MyRoundView extends Component<{}> {
       default:
         return 'ios-help-circle';
     }
+  }
+
+  // Render current course
+  renderCourse() {
+    let holes = courseMSG.features;
+    holes.map( hole => {
+      console.log(hole.geometry.coordinates)
+    })
   }
 
   // Show player's locations
