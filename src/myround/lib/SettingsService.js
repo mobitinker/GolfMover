@@ -509,7 +509,6 @@ class SettingsService {
         notifyOnDwell: false, //config.notifyOnDwell,
         loiteringDelay: 0 //config.loiteringDelay
       });
-      console.log("Pushed geofence " + geofenceNextId)
     }
     return geofences;
   }

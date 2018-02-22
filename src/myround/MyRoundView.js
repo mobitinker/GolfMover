@@ -10,7 +10,6 @@ import Modal from "react-native-modal";
 
 // For posting to tracker.transistorsoft.com
 import DeviceInfo from 'react-native-device-info';
-
 import ActionButton from 'react-native-action-button';
 
 // Import native-base UI components
@@ -71,6 +70,8 @@ export default class MyRoundView extends Component<{}> {
 
     let t = (new Date()).getTime()
 
+    //TODO is local state bad? If so, switch to MobX
+    //TODO comment all below if local state good
     this.state = {
       enabled: false,
       isMoving: false,
@@ -108,7 +109,9 @@ export default class MyRoundView extends Component<{}> {
       bgGeo: {},
       // Firebase stuff
       db: null,
+      curUser: null,
       currentRoundRef: null,
+      currentPathRef: null,
       currentRound: this.newCurrentRound(null),
       // UI stuff
       showStopConfirm: false
@@ -119,7 +122,7 @@ export default class MyRoundView extends Component<{}> {
   }
 
   componentDidMount() {
-
+    console.log("Got here")
     // Fetch BackgroundGeolocation current state and use that as our config object.
     // We use the config as persisted by the
     // settings screen to configure the plugin.
@@ -140,12 +143,24 @@ export default class MyRoundView extends Component<{}> {
       db: db
     });
 
-    //TODO debug remove previous data for easier debugging
-    db.ref("activityChanges").remove()
+    // Easy way to remove previous data for easier debugging
+    /*
     db.ref("errors").remove()
-    db.ref("events").remove()
-    db.ref("motionchange").remove()
-    db.ref("motionChanges").remove()
+    db.ref("paths").remove()
+    db.ref("rounds").remove()
+    */
+
+    let authUser = firebase.auth().currentUser
+    if (authUser) {
+      let curUser = firebase.database().ref('users/' + authUser.uid).once('value')
+      .then( snapshot => {
+        console.log("Curuser ", snapshot.val())
+        //state.curUser = snapshot.val()
+        this.setState({
+          curUser: snapshot.val()
+        })
+      })
+    }
   }
 
   configureBackgroundGeolocation(config) {
@@ -175,6 +190,7 @@ export default class MyRoundView extends Component<{}> {
     config.url = TRACKER_HOST + this.state.username
 
     // TODO determine how to only get for current course
+    // TODO or replace with polygon geofences, GeoFire
     config.geofenceProximityRadius = 10000  // Should get all for current course
 
     BackgroundGeolocation.configure(config, (state) => {
@@ -212,6 +228,24 @@ export default class MyRoundView extends Component<{}> {
     )
 
   }
+  /**
+  * Pushes location to the appropriate ref for the round. Creates a new path if needed
+  */
+  addLocToPlayerPath(location) {
+    // Skip it if no round is in progress
+    if (this.state.currentRoundRef == null)
+      return;
+    let currentRoundId = this.state.currentRoundRef.key;
+    if (!this.state.currentPathRef) {
+      // Create a new path for this round
+      this.state.currentPathRef = this.state.db.ref("paths/" + currentRoundId + "/locations")
+    }
+    this.state.currentPathRef.push({
+      locationTime: firebase.database.ServerValue.TIMESTAMP,
+      location: location
+    })
+
+  }
 
   /**
   * @event location
@@ -229,6 +263,7 @@ export default class MyRoundView extends Component<{}> {
         }
       })
     */
+    /* TODO remove
     // Log event
     this.state.db.ref("events").push(
       {
@@ -237,14 +272,18 @@ export default class MyRoundView extends Component<{}> {
         location : location
       }
     )
+    */
 
+    // Update current round with current location
     if (this.state.currentRound) {
       cr = this.state.currentRound
-      cr.currentLocation = location
+      cr.curLocation = location
       if (this.state.currentRoundRef) {
         this.state.currentRoundRef.set(cr)
       }
     }
+
+    this.addLocToPlayerPath(location)
 
     if (!location.sample) {
       this.addMarker(location);
@@ -265,6 +304,7 @@ export default class MyRoundView extends Component<{}> {
     let duration = eventTime - this.state.lastMotionTime
 
     // Log event
+    /* TODO remove
     this.state.db.ref("events").push(
       {
         eventName: "motionchange",
@@ -273,8 +313,9 @@ export default class MyRoundView extends Component<{}> {
         location : event.location
       }
     )
-
+    */
     let location = event.location;
+    this.addLocToPlayerPath(location)
 
     //TODO determine what's being done here. Confusing with state and this.state naming
     let state = {
@@ -353,6 +394,7 @@ export default class MyRoundView extends Component<{}> {
       motionActivity: event
     });
 
+    /* TODO remove
     this.state.db.ref("events").push(
       {
         eventName: "activitychange",
@@ -361,6 +403,7 @@ export default class MyRoundView extends Component<{}> {
         confidence : event.confidence
       }
     )
+    */
   }
 
   /**
@@ -395,6 +438,7 @@ export default class MyRoundView extends Component<{}> {
   */
   onProviderChange(event) {
     console.log('[event] providerchange', event);
+    /* TODO remove
     // Log event
     this.state.db.ref("events").push(
       {
@@ -404,6 +448,7 @@ export default class MyRoundView extends Component<{}> {
         event: event
       }
     )
+    */
   }
 
   /**
@@ -427,6 +472,8 @@ export default class MyRoundView extends Component<{}> {
   * @event geofenceschange
   */
   onGeofencesChange(event) {
+
+    /* TODO remove
     // Log event
     this.state.db.ref("events").push(
       {
@@ -435,6 +482,7 @@ export default class MyRoundView extends Component<{}> {
         on: event.on                      //List of active geofences
       }
     )
+    */
 
     var on  = event.on;
     var off = event.off;
@@ -461,6 +509,7 @@ export default class MyRoundView extends Component<{}> {
   * @event geofence
   */
   onGeofence(geofence) {
+    /* TODO remove
     // Log event
     this.state.db.ref("events").push(
       {
@@ -472,6 +521,7 @@ export default class MyRoundView extends Component<{}> {
         //extras : event.extras,
       }
     )
+    */
 
     let location = geofence.location;
     var marker = this.state.geofences.find((m) => {
@@ -537,6 +587,7 @@ export default class MyRoundView extends Component<{}> {
   // Todo remove
   onPowerSaveChange(isPowerSaveMode) {
     console.log('[event] powersavechange', isPowerSaveMode);
+    /* TODO remove
     // Log event
     this.state.db.ref("events").push(
       {
@@ -545,6 +596,7 @@ export default class MyRoundView extends Component<{}> {
         isPowerSaveMode : isPowerSaveMode
       }
     )
+    */
   }
 
   clearModal = () => {
@@ -555,6 +607,7 @@ export default class MyRoundView extends Component<{}> {
   * If user confirms, turn off plugin here
   */
   endRound() {
+    /* TODO remove
     // Log event
     this.state.db.ref("events").push(
       {
@@ -563,6 +616,7 @@ export default class MyRoundView extends Component<{}> {
         enabled : false
       }
     )
+    */
 
     BackgroundGeolocation.stop();
     // Clear markers, polyline, geofences, stationary-region
@@ -581,11 +635,16 @@ export default class MyRoundView extends Component<{}> {
       showStopConfirm: false
     });
 
-    //TODO update and move to completedRounds
+    // Update current round with round completed time. This will denote it
+    // as no longer in progress
+    this.state.currentRoundRef.update({
+        timeCompleted: firebase.database.ServerValue.TIMESTAMP
+    })
+
     if (this.state.currentRoundRef) {
-      this.state.currentRoundRef.remove()
       this.setState({
-        currentRoundRef: null
+        currentRoundRef: null,
+        currentPathRef: null
       })
     }
   }
@@ -601,6 +660,7 @@ export default class MyRoundView extends Component<{}> {
     if (enabled) {
       // Start the plugin
 
+      /* TODO remove
       // Log event
       this.state.db.ref("events").push(
         {
@@ -609,6 +669,7 @@ export default class MyRoundView extends Component<{}> {
           enabled : enabled
         }
       )
+      */
 
       this.setState({
         enabled: enabled,
@@ -629,12 +690,13 @@ export default class MyRoundView extends Component<{}> {
           lastMotionTime: t,
         });
       });
+
       // Add a new current round to the database
       if (firebase.auth().currentUser) {
         let curUser = firebase.auth().currentUser._user
         // Create new current round
         cr = this.newCurrentRound(curUser)
-        let currentRoundRef = this.state.db.ref("currentRounds").push(cr)
+        let currentRoundRef = this.state.db.ref("rounds").push(cr)
         this.setState({
           currentRoundRef: currentRoundRef,
           currentRound: cr
@@ -643,9 +705,10 @@ export default class MyRoundView extends Component<{}> {
         console.log("Unexpected absence of current user")
       }
       this.settingsService.toast("Round recording on")
-      console.log('Started location tracking mode');
+      console.log('Started round');
     } else {
       this.settingsService.toast("Round recording off")
+      console.log('Ending round')
       this.setState({
         showStopConfirm: true
       })
@@ -740,17 +803,21 @@ export default class MyRoundView extends Component<{}> {
       courseId: null,
       groupId: null,
       playerId: curUser ? curUser.uuid : null,
+      pathId: null,
       playerEmail: curUser ? curUser.email : null,
+      username: curUser ? curUser.username : null,
       onfoot: true,
       curLocation: null,
       curLocationTime: null,
       timeStarted: firebase.database.ServerValue.TIMESTAMP,
+      timeCompleted: 0,
       currentHole: 0,
       holeTimes: null,
       timeStill: 0,
       timeMoving: 0
     }
   }
+
   /* TODO remove
   resetOdometer() {
     this.clearMarkers();
@@ -948,27 +1015,7 @@ export default class MyRoundView extends Component<{}> {
           </Button>
         </View>
 
-        <ActionButton
-          position="left"
-          hideShadow={false}
-          autoInactive={false}
-          active={this.state.isMainMenuOpen}
-          backgroundTappable={true}
-          onPress={this.onClickMainMenu.bind(this)}
-          icon={<Icon name="ios-add" size={25}/>}
-          verticalOrientation="down"
-          buttonColor="rgba(254,221,30,1)"
-          buttonTextStyle={{color: "#000"}}
-          spacing={15}
-          offsetX={10}
-          offsetY={ACTION_BUTTON_OFFSET_Y}>
-          <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('settings')}>
-            <Icon name="ios-cog" style={styles.actionButtonIcon} />
-          </ActionButton.Item>
-          <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('emailLog')}>
-            {!this.state.isEmailingLog ? (<Icon name="ios-mail" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
-          </ActionButton.Item>
-        </ActionButton>
+        {this.renderActionButton()}
         {this.renderStopPrompt()}
         <Footer style={styles.footer}>
           <Left style={{flex:0.3}}>
@@ -1162,6 +1209,42 @@ export default class MyRoundView extends Component<{}> {
   }
 
   /**
+  * Render the action button on left side of map
+  */
+  renderActionButton() {
+    if (!this.state.curUser) return
+
+    let isAdmin = 0 <= this.state.curUser.roles.indexOf("admin")
+
+    if (!isAdmin) return
+
+    return (
+      <ActionButton
+        position="left"
+        hideShadow={false}
+        autoInactive={false}
+        active={this.state.isMainMenuOpen}
+        backgroundTappable={true}
+        onPress={this.onClickMainMenu.bind(this)}
+        icon={<Icon name="ios-add" size={25}/>}
+        verticalOrientation="down"
+        buttonColor="rgba(254,221,30,1)"
+        buttonTextStyle={{color: "#000"}}
+        spacing={15}
+        offsetX={10}
+        offsetY={ACTION_BUTTON_OFFSET_Y}>
+        <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('settings')}>
+          <Icon name="ios-cog" style={styles.actionButtonIcon} />
+        </ActionButton.Item>
+        <ActionButton.Item size={40} buttonColor={COLORS.gold} onPress={() => this.onSelectMainMenu('emailLog')}>
+          {!this.state.isEmailingLog ? (<Icon name="ios-mail" style={styles.actionButtonIcon} />) : (<Spinner color="#000" size="small" />)}
+        </ActionButton.Item>
+      </ActionButton>
+
+    )
+  }
+
+  /**
   * Map methods
   */
   setCenter(location) {
@@ -1233,15 +1316,6 @@ export default class MyRoundView extends Component<{}> {
     });
     */
   }
-
-  /* TODO remove
-  onLoginRegister(params) {
-    var coordinate = params.nativeEvent.coordinate;
-    this.props.navigation.navigate('Auth', {
-      coordinate: coordinate
-    });
-  }
-  */
 
   clearMarkers() {
     this.setState({

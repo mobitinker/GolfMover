@@ -6,7 +6,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- 1/3 [RELEASE] Remove this in release -->
+    <!-- 1/3 [RELEASE] Remove this in release see:
+    https://stackoverflow.com/questions/45347562/how-to-turn-off-overlay-permission-on-android -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
     <!-- 2/3 [RELEASE] Add these in release

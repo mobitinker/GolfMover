@@ -132,6 +132,20 @@ export default class AuthView extends Component {
     });
   }
 
+  createUser = (id, username, email) =>  {
+    // User first part of email address if no display name was entered
+    if ((!username) || (username === '')) {
+      username = email.substr(0, email.indexOf('@'))
+    }
+
+    // Add user to database (separate from authentication)
+    firebase.database().ref(`users/${id}`).set({
+      username: username,
+      email: email,
+      roles: ["player"]
+    })
+  }
+
   // Handle registration
   onRegister = () => {
     const value = this._form.getValue();
@@ -142,6 +156,7 @@ export default class AuthView extends Component {
     firebase.auth().createUserWithEmailAndPassword(value.email, value.password)
       .then((user) => {
         console.log("Registration successful")
+        this.createUser(user.uid, value.displayName, value.email)
         this.onClickBack()
       })
       .catch((error) => {
