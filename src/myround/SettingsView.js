@@ -43,14 +43,6 @@ export default class SettingsView extends Component<{}> {
     // Default state
     this.state = {
       isDestroyingLog: false,
-      isLoadingGeofences: false,
-      geofence: {
-        radius: '20',  // mkm was 200
-        notifyOnEntry: true,
-        notifyOnExit: false,
-        notifyOnDwell: false,
-        loiteringDelay: '0'
-      }
     };
   }
 
@@ -84,20 +76,13 @@ export default class SettingsView extends Component<{}> {
     this.props.navigation.navigate('About');
   }
 
+  // TODO can remove
   onChangeTrackingMode(value) {
     if (this.state.trackingMode === value) { return; }
     this.setState({trackingMode: value});
-    //if (value === 'location') {
-      BackgroundGeolocation.start((state) => {
-        console.log('- Start location tracking mode');
-      });
-    /* Disabling geofence
-    } else {
-      BackgroundGeolocation.startGeofences((state) => {
-        console.log('- Start geofence tracking mode');
-      });
-    }
-    */
+    BackgroundGeolocation.start((state) => {
+      console.log('- Start location tracking mode');
+    });
   }
 
   onChangeEmail(value) {
@@ -113,29 +98,6 @@ export default class SettingsView extends Component<{}> {
         this.settingsService.toast('Destroyed logs');
       });
     });
-  }
-
-  onClickLoadGeofences() {
-    if (this.state.isLoadingGeofences) { return false; }
-    this.setState({isLoadingGeofences: true});
-
-    this.settingsService.getApplicationState((state) => {
-      let geofences = this.settingsService.getTestGeofences();
-
-      BackgroundGeolocation.addGeofences(geofences, () => {
-        this.settingsService.playSound('ADD_GEOFENCE');
-        this.settingsService.toast('Loaded test geofences');
-        this.setState({isLoadingGeofences: false});
-      }, () => {
-        this.settingsService.toast('Failed to load test geofences');
-        this.setState({isLoadingGeofences: false});
-      });
-    });
-  }
-
-  onClickClearGeofences() {
-    this.settingsService.playSound('MESSAGE_SENT');
-    BackgroundGeolocation.removeGeofences();
   }
 
   onFieldChange(setting, value) {
@@ -178,13 +140,6 @@ export default class SettingsView extends Component<{}> {
       this.changeBuffer = clearTimeout(this.changeBuffer);
     }
     this.changeBuffer = setTimeout(doChange.bind(this), 500);
-  }
-
-  onChangeGeofence(setting, value) {
-    this.settingsService.onChange(setting, value);
-    let state = {};
-    state[setting.name] = value;
-    this.setState(state);
   }
 
   render() {
@@ -246,26 +201,6 @@ export default class SettingsView extends Component<{}> {
               </Button>
             </Content>
 
-            {/* Hide geofence stuff. Clear and load geofences at start up
-            <FormItem style={styles.headerItem}>
-              <Text>GEOFENCE TESTING (Test Course)</Text>
-            </FormItem>
-
-            <FormItem style={styles.formItem}>
-              <Left style={{marginRight:3}}>
-                <Button full danger onPress={this.onClickClearGeofences.bind(this)}>
-                  <Text>Clear</Text>
-                </Button>
-              </Left>
-              <Right style={{marginLeft: 3}}>
-                <Button full onPress={this.onClickLoadGeofences.bind(this)} isLoading={this.state.isLoadingGeofences}>
-                  {!this.state.isLoadingGeofences ? (<Text>Load</Text>) : (<Spinner color="white" size="small" />)}
-                </Button>
-              </Right>
-            </FormItem>
-
-            {this.getGeofenceTestSettings()}
-            */ }
           </Form>
         </Content>
 
@@ -276,14 +211,6 @@ export default class SettingsView extends Component<{}> {
   renderPluginSettings(section) {
     return this.settingsService.getPluginSettings(section).map((setting) => {
       return this.buildField(setting, this.onFieldChange.bind(this));
-    });
-  }
-
-  getGeofenceTestSettings() {
-    return this.settingsService.getApplicationSettings('geofence').map((setting) => {
-      //console.log('- setting: ', setting);
-
-      return this.buildField(setting, this.onChangeGeofence.bind(this));
     });
   }
 
@@ -351,15 +278,15 @@ export default class SettingsView extends Component<{}> {
             onValueChange={this.onChangeTrackingMode.bind(this)}
             style={{width:(Platform.OS === 'ios') ? undefined : 150}}>
             <Item label="Location" value="location" />
-            <Item label="Geofence" value="geofence" />
           </Picker>
         </Right>
       </FormItem>
     );
   }
 
+  // TODO can remove
   decodeTrackingMode(trackingMode) {
-    return (trackingMode === 1 || trackingMode === 'location') ? 'location' : 'geofence';
+    return 'location'
   }
 
   decodeLogLevel(logLevel) {

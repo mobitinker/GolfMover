@@ -22,33 +22,10 @@ const STORAGE_KEY = "@murphysw:";
 //const TRACKER_HOST = 'http://tracker.transistorsoft.com/locations/';
 const TRACKER_HOST = 'https://golfmover-test.herokuapp.com/locations/';
 
-const GEOFENCE_RADIUS_OPTIONS = {
-  "20":"20",
-  "100":"100",
-  "150":"150",
-  "200":"200",
-  "300":"300",
-  "500":"500",
-  "1000":"1000"
-};
-
-const GEOFENCE_LOITERING_DELAY_OPTIONS = {
-  "0":"0",
-  "10000":"10000",
-  "30000":"30000",
-  "60000":"60000"
-};
-
 const APP_SETTINGS = [
   {show: true, name: 'email', group: 'application', dataType: 'string', inputType: 'text', defaultValue: 'mobitinker@gmail.com'},
-  {show: false, name: 'radius', group: 'geofence', dataType: 'integer', inputType: 'select', defaultValue: 20, values: [20, 100, 150, 200, 500, 1000]},
-  {show: false, name: 'notifyOnEntry', group: 'geofence', dataType: 'boolean', inputType: 'toggle', defaultValue: true},
-  {show: false, name: 'notifyOnExit', group: 'geofence', dataType: 'boolean', inputType: 'toggle', defaultValue: true},
-  {show: false, name: 'notifyOnDwell', group: 'geofence', dataType: 'boolean', inputType: 'toggle', defaultValue: false},
-  {show: false, name: 'loiteringDelay', group: 'geofence', dataType: 'integer', inputType: 'select', defaultValue: 0, values: [0, (1*1000), (5*1000), (10*1000), (30*1000), (60*1000), (5*60*1000)]},
   {show: true, name: 'hideMarkers', group: 'map', dataType: 'boolean', inputType: 'toggle', defaultValue: true},
   {show: true, name: 'hidePolyline', group: 'map', dataType: 'boolean', inputType: 'toggle', defaultValue: true},
-  {show: true, name: 'hideGeofenceHits', group: 'map', dataType: 'boolean', inputType: 'toggle', defaultValue: true},
   {show: true, name: 'followsUserLocation', group: 'map', dataType: 'boolean', inputType: 'toggle', defaultValue: true},
 ];
 
@@ -60,7 +37,6 @@ const PLUGIN_SETTINGS = {
     {show: true, name: 'distanceFilter', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [0, 10, 20, 50, 100, 500], defaultValue: 20 },
     {show: false, name: 'disableElasticity', group: 'geolocation', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
     {show: false, name: 'elasticityMultiplier', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [0, 1, 2, 3, 5, 10], defaultValue: 1},
-    {show: true, name: 'geofenceProximityRadius', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [1000, 1500, 2000, 5000, 10000, 100000], defaultValue: 10000 },
     {show: false, name: 'stopAfterElapsedMinutes', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [-1, 0, 1, 2, 5, 10, 15], defaultValue: 0},
     {show: false, name: 'desiredOdometerAccuracy', group: 'geolocation', dataType: 'integer', inputType: 'select', values: [10, 20, 50, 100, 500], defaultValue: 100},
 
@@ -115,7 +91,6 @@ const PLUGIN_SETTINGS = {
     {show: true, name: 'foregroundService', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: true},
     {show: false, name: 'forceReloadOnMotionChange', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
     {show: false, name: 'forceReloadOnLocationChange', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
-    {show: false, name: 'forceReloadOnGeofence', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: false},
     {show: true, name: 'forceReloadOnHeartbeat', group: 'application', dataType: 'boolean', inputType: 'toggle', values: [true, false], defaultValue: true},
     {show: false, name: 'notificationPriority', group: 'application', dataType: 'string', inputType: 'select', values: ['DEFAULT', 'HIGH', 'LOW', 'MAX', 'MIN'], defaultValue: 'DEFAULT'}
   ]
@@ -127,7 +102,6 @@ const SOUND_MAP = {
   "ios": {
     "LONG_PRESS_ACTIVATE": 1113,
     "LONG_PRESS_CANCEL": 1075,
-    "ADD_GEOFENCE": 1114,
     "BUTTON_CLICK": 1104,
     "MESSAGE_SENT": 1303,
     "ERROR": 1006,
@@ -138,7 +112,6 @@ const SOUND_MAP = {
   "android": {
     "LONG_PRESS_ACTIVATE": 27,
     "LONG_PRESS_CANCEL": 94,
-    "ADD_GEOFENCE": 28,
     "BUTTON_CLICK": 19,
     "MESSAGE_SENT": 90,
     "ERROR": 89,
@@ -236,7 +209,7 @@ class SettingsService {
 
   /**
   * Returns application-specific state
-  * {hideMarkers, hidePolyline, hideGeofences, email}
+  * {hideMarkers, email}
   */
   getApplicationState(callback) {
     if (this.applicationState) {
@@ -466,51 +439,6 @@ class SettingsService {
       rs.push(schedule);
     }
     return rs;
-  }
-
-  /**
-  * Returns lists of available values for geofence radius select box in Views
-  * @return {Array}
-  */
-  getRadiusOptions() {
-    return GEOFENCE_RADIUS_OPTIONS;
-  }
-
-  /**
-  * Returns list of available values for loiteringDelay select box in Views
-  * @return {Array}
-  */
-  getLoiteringDelayOptions() {
-    return GEOFENCE_LOITERING_DELAY_OPTIONS;
-  }
-
-  /**
-  * Returns an array of test-geofences suitable for sending to BackgroundGeolocation#addGeofences
-  * @param {Function} callback
-  * @return {Array}
-  */
-  getTestGeofences() {
-    var data = this.getCourseData();
-    var geofences = [];
-    let geofenceNextId = 0;
-
-    for (var n=0, len=data.length;n<len;n++) {
-      ++geofenceNextId
-      geofences.push({
-        identifier: data[n].identifier,
-        extras: {
-          "geofence_extra_foo": "extra geofence data"
-        },
-        latitude: data[n].lat,
-        longitude: data[n].lng,
-        radius: data[n].radius,
-        notifyOnEntry: true, //config.notifyOnEntry,
-        notifyOnExit: true, //config.notifyOnExit,
-        notifyOnDwell: false, //config.notifyOnDwell,
-        loiteringDelay: 0 //config.loiteringDelay
-      });
-    }
-    return geofences;
   }
 
   /**
