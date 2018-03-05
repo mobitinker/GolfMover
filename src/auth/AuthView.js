@@ -8,6 +8,7 @@ import App from '../App';
 import appStyles from '../themes/ApplicationStyles'
 import firebase from 'react-native-firebase';
 import Modal from "react-native-modal";
+import DeviceInfo from 'react-native-device-info';
 import { NavigationActions } from 'react-navigation';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
@@ -153,6 +154,9 @@ export default class AuthView extends Component {
       return
     }
     console.log("Registering...")
+    //TODO use UniqueID from device as user identifier
+    console.log("Starting on device UID: " + DeviceInfo.getUniqueID())
+    
     firebase.auth().createUserWithEmailAndPassword(value.email, value.password)
       .then((user) => {
         console.log("Registration successful")

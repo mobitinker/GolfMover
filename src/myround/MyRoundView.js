@@ -30,6 +30,7 @@ import {
   Switch,
   Spinner
 } from 'native-base';
+import { Col, Row, Grid } from 'react-native-easy-grid';
 
 import BackgroundGeolocation from 'react-native-background-geolocation';
 import MapView from 'react-native-maps';
@@ -60,7 +61,7 @@ if (Platform.OS == 'android') {
 export default class MyRoundView extends Component<{}> {
   constructor(props) {
     super(props);
-    this._isMounted = false
+    //this._isMounted = false
     console.log("Hit constructor *********************")
 
     let t = (new Date()).getTime()
@@ -81,18 +82,22 @@ export default class MyRoundView extends Component<{}> {
       isEmailingLog: false,
       isDestroyingLocations: false,
       // Map state
+      /* TODO remove
       centerCoordinate: {
         latitude: 0,
         longitude: 0
       },
-      isPressingOnMap: false,
+      */
+      //isPressingOnMap: false,
       mapScrollEnabled: false,
       showsUserLocation: false,
       followsUserLocation: false,
+      didFirstCenter: false,            // Set to true after first centering of map
       stationaryLocation: {timestamp: '',latitude:0,longitude:0},
       stationaryRadius: 0,
       markers: [],
       stopZones: [],
+      hideMarkers: false,               // Currently always false
       coordinates: [],
       // Application settings
       settings: {},
@@ -116,22 +121,19 @@ export default class MyRoundView extends Component<{}> {
   * For catching setting state on unmounted component
   */
   setStateWithLog(state) {
+    /*
     if (!this._isMounted) {
       console.log("******************** Attempt to set state after component unmounted", state)
       return
     }
+    */
     //console.log("Setting state", state)
     this.setState(state)
   }
 
-  componentWillUnmount() {
-    this._isMounted = false
-    console.log("Unmounting **************************************************")
-  }
-
   componentDidMount() {
     console.log("Mounted **************************************************")
-    this._isMounted = true
+    //this._isMounted = true
     // Fetch BackgroundGeolocation current state and use that as our config object.
     // We use the config as persisted by the
     // settings screen to configure the plugin.
@@ -164,7 +166,7 @@ export default class MyRoundView extends Component<{}> {
       firebase.database().ref('users/' + authUser.uid).once('value')
         .then( snapshot => {
           console.log("Curuser ", snapshot.val())
-          console.log('is mounted', this._isMounted)
+          //console.log('is mounted', this._isMounted)
 
           this.setStateWithLog({
             curUser: snapshot.val()
@@ -174,6 +176,11 @@ export default class MyRoundView extends Component<{}> {
           console.log("Error getting user data", e)
         })
     }
+  }
+
+  componentWillUnmount() {
+    //this._isMounted = false
+    console.log("Unmounting **************************************************")
   }
 
   configureBackgroundGeolocation(config) {
@@ -277,7 +284,7 @@ export default class MyRoundView extends Component<{}> {
     let location = event.location;
     this.addLocToPlayerPath(location)
 
-    //TODO determine what's being done here. Confusing with state and this.state naming
+    //TODO change name to be less confusing
     let state = {
       isMoving: event.isMoving
     };
@@ -364,16 +371,6 @@ export default class MyRoundView extends Component<{}> {
   * If user confirms, turn off plugin here
   */
   endRound() {
-    /* TODO remove
-    // Log event
-    this.state.db.ref("events").push(
-      {
-        eventTime : firebase.database.ServerValue.TIMESTAMP,
-        eventName : "pluginstatechange",
-        enabled : false
-      }
-    )
-    */
 
     BackgroundGeolocation.stop();
     // Clear markers, polyline, stationary-region
@@ -431,7 +428,7 @@ export default class MyRoundView extends Component<{}> {
         // We tell react-native-maps to access location only AFTER
         // the plugin has requested location, otherwise we have a permissions tug-of-war,
         // since react-native-maps wants WhenInUse permission
-        console.log("debug follow setting to " + enabled)
+        console.log("setting state after bg start")
         this.setStateWithLog({
           showsUserLocation: enabled,
           followsUserLocation: enabled,
@@ -455,7 +452,6 @@ export default class MyRoundView extends Component<{}> {
       }
       this.settingsService.toast("Round recording on")
       console.log('Started round');
-      console.log('is mounted', this._isMounted)
 
     } else {
       this.settingsService.toast("Round recording off")
@@ -474,9 +470,6 @@ export default class MyRoundView extends Component<{}> {
 
     // When getCurrentPosition button is pressed, enable followsUserLocation
     // PanDrag will disable it.
-    console.log("debug follow setting to true")
-    console.log('is mounted', this._isMounted)
-
     this.setStateWithLog({
       followsUserLocation: true
     });
@@ -498,7 +491,6 @@ export default class MyRoundView extends Component<{}> {
   */
   // TODO Remove
   onClickChangePace() {
-    console.log('- onClickChangePace');
     let isMoving = !this.state.isMoving;
     this.setStateWithLog({isMoving: isMoving});
     BackgroundGeolocation.changePace(isMoving);
@@ -608,47 +600,6 @@ export default class MyRoundView extends Component<{}> {
     });
   }
 
-  /* TODO Remove
-  sync() {
-    BackgroundGeolocation.getCount((count) => {
-      if (!count) {
-        this.settingsService.toast('Locations database is empty');
-        return;
-      }
-      this.settingsService.confirm('Confirm Sync', 'Sync ' + count + ' records?', () => {
-        this.setStateWithLog({isSyncing: true});
-        BackgroundGeolocation.sync((rs) => {
-          this.settingsService.toast('Sync success (' + count + ' records)');
-          //this.settingsService.playSound('MESSAGE_SENT');
-          this.setStateWithLog({isSyncing: false});
-        }, (error) => {
-          this.settingsService.toast('Sync error: ' + error);
-          this.setStateWithLog({isSyncing: false});
-        });
-      });
-    });
-  }
-
-  destroyLocations() {
-    BackgroundGeolocation.getCount((count) => {
-      if (!count) {
-        this.settingsService.toast('Locations database is empty');
-        return;
-      }
-      this.settingsService.confirm('Confirm Delete', 'Destroy ' + count + ' records?', () => {
-        this.setStateWithLog({isDestroyingLocations: true});
-        BackgroundGeolocation.destroyLocations(() => {
-          this.setStateWithLog({isDestroyingLocations: false});
-          this.settingsService.toast('Destroyed ' + count + ' records');
-        }, (error) => {
-          this.setStateWithLog({isDestroyingLocations: false});
-          this.settingsService.toast('Destroy locations error: ' + error, null, 'LONG');
-        });
-      });
-    });
-  }
-  */
-
   /**
   * Top-right map menu button-handler
   * [show/hide marker] [show/hide polyline]
@@ -679,15 +630,23 @@ export default class MyRoundView extends Component<{}> {
   renderStopPrompt = () => {
     return (
       <Modal isVisible={this.state.showStopConfirm}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.modalContent}>Are you sure you want to stop tracking your round?</Text>
-          <Button style={styles.modalButton} onPress={this.endRound.bind(this)}>
-            <Text>Yes</Text>
-          </Button>
-          <Button style={styles.modalButton} onPress={this.clearModal.bind(this)}>
-            <Text>No</Text>
-          </Button>
-        </View>
+        <Container>
+          <Content contentContainerStyle={{flex: 1}} style={{padding: 10}}>
+            <Text style={styles.modalContent}>Are you sure you want to stop tracking your round?</Text>
+            <Grid style={{alignItems: 'center'}}>
+              <Col size={1} style={{ height: 100 }}>
+                <Button success size={1} style={styles.modalButton} onPress={this.endRound.bind(this)}>
+                  <Text>Yes</Text>
+                </Button>
+              </Col>
+              <Col size={1} style={{ height: 100 }}>
+                <Button light size={1} style={styles.modalButton} onPress={this.clearModal.bind(this)}>
+                  <Text>No</Text>
+                </Button>
+              </Col>
+            </Grid>
+          </Content>
+        </Container>
       </Modal>
     )
   }
@@ -742,7 +701,7 @@ export default class MyRoundView extends Component<{}> {
           toolbarEnabled={false}>
           <MapView.Polyline
             key="polyline"
-            coordinates={(!this.state.settings.hideMarkers) ? this.state.coordinates : []}
+            coordinates={this.state.coordinates}
             geodesic={true}
             strokeColor='rgba(0,179,253, 0.6)'
             strokeWidth={6}
@@ -753,11 +712,13 @@ export default class MyRoundView extends Component<{}> {
           {this.renderCourse()}
         </MapView>
 
+        { /*
         <View style={styles.mapMenu}>
           <Button small success light={this.state.settings.hideMarkers} style={styles.mapMenuButton} onPress={() => this.onClickMapMenu('hideMarkers') }>
             <Icon name="ios-pin" />
           </Button>
         </View>
+        */ }
 
         {this.renderActionButton()}
         {this.renderStopPrompt()}
@@ -867,16 +828,23 @@ export default class MyRoundView extends Component<{}> {
   }
 
   // Show player's locations along path
+  //TODO this gets called too many times
   renderMarkers() {
-    if (this.state.settings.hideMarkers) { return; }
+    //TODO remove
+    //if (this.state.settings.hideMarkers) { return; }
     let rs = [];
     let cntMarkers = this.state.markers.length
     let m = 0
+
+    // TODO remove (goes below)
+    { /* coordinates={(!this.state.settings.hideMarkers) ? this.state.coordinates : []} */ }
+
     this.state.markers.map((marker) => {
       m += 1
       // Determine image to use
       let markerImage = markerLocation
       if (m == cntMarkers) {
+        // This is the most recent/current location
         switch (this.state.motionActivity.activity) {
           case 'unknown':
           case 'still':
@@ -893,11 +861,17 @@ export default class MyRoundView extends Component<{}> {
             break
         }
       }
+
+      let rotation = (m == cntMarkers ? 0 : marker.heading)
+      if (marker.heading == -1) {
+        rotation = 0
+      }
+
       rs.push((
         <MapView.Marker
           key={marker.key}
           coordinate={marker.coordinate}
-          anchor={{x:0, y:0.1}}
+          anchor={{x:0, y:0.2}}
           title={marker.title}
           image={markerImage}
           />
@@ -911,7 +885,7 @@ export default class MyRoundView extends Component<{}> {
       <MapView.Marker
         key={stopZone.key}
         coordinate={stopZone.coordinate}
-        anchor={{x:0, y:0.1}}>
+        anchor={{x:0, y:0.2}}>
         <View style={[styles.stopZoneMarker]}></View>
       </MapView.Marker>
     ));
@@ -966,12 +940,19 @@ export default class MyRoundView extends Component<{}> {
   */
   setCenter(location) {
     if (!this.refs.map) {
-      console.log("Did not find map ref")
       return;
     }
-    if (!this.state.followsUserLocation) {
+    if (!this.state.followsUserLocation && this.state.didFirstCenter) {
       return;
     }
+
+    if (!location) {
+      return;
+    }
+
+    this.setStateWithLog({
+      didFirstCenter: true
+    });
 
     this.refs.map.animateToRegion({
       latitude: location.coords.latitude,
@@ -1100,19 +1081,12 @@ var styles = StyleSheet.create({
   motionActivityIcon: {
     fontSize: 24
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center"
-  },
   modalButton: {
-    backgroundColor: "lightblue",
-    padding: 12,
-    margin: 16,
+    margin: 10,
+    /*
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 4,
-    borderColor: "rgba(0, 0, 0, 0.1)"
+    */
   },
   modalContent: {
     backgroundColor: "white",
@@ -1122,9 +1096,5 @@ var styles = StyleSheet.create({
     borderRadius: 4,
     borderColor: "rgba(0, 0, 0, 0.1)"
   },
-  bottomModal: {
-    justifyContent: "flex-end",
-    margin: 0
-  }
 
 });
