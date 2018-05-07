@@ -165,9 +165,6 @@ export default class MyRoundView extends Component<{}> {
     if (authUser) {
       firebase.database().ref('users/' + authUser.uid).once('value')
         .then( snapshot => {
-          console.log("Curuser ", snapshot.val())
-          //console.log('is mounted', this._isMounted)
-
           this.setStateWithLog({
             curUser: snapshot.val()
           })
@@ -548,7 +545,7 @@ export default class MyRoundView extends Component<{}> {
     return {
       courseId: null,
       groupId: null,
-      playerId: curUser ? curUser.uuid : null,
+      playerUID: curUser ? curUser.uid : null,
       pathId: null,
       playerEmail: curUser ? curUser.email : null,
       username: curUser ? curUser.username : null,
